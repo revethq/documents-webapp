@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from "@/components/app-layout"
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
@@ -27,7 +28,7 @@ import { useGetApiV1Organizations } from '@/lib/api/generated/organizations/orga
 import { useGetApiV1Projects } from '@/lib/api/generated/projects/projects'
 import { useGetApiV1Categories } from '@/lib/api/generated/categories/categories'
 import { useGetApiV1Tags, postApiV1Tags } from '@/lib/api/generated/tags/tags'
-import { postApiV1Documents } from '@/lib/api/generated/documents/documents'
+import { postApiV1Documents, getGetApiV1DocumentsQueryKey } from '@/lib/api/generated/documents/documents'
 import { postApiV1FilesInitiateUpload } from '@/lib/api/generated/files/files'
 import { putApiV1DocumentVersionsUuidCompleteUpload } from '@/lib/api/generated/document-versions/document-versions'
 import type { OrganizationDTO, ProjectDTO, CategoryDTO, TagDTO } from '@/lib/api/models'
@@ -50,6 +51,7 @@ const STEPS: { id: Step; name: string; icon: typeof BuildingOfficeIcon }[] = [
 
 export default function NewDocumentPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Form state
@@ -255,7 +257,8 @@ export default function NewDocumentPage() {
 
       setUploadState(prev => ({ ...prev, status: 'complete', progress: 100 }))
 
-      // Redirect to documents page after a short delay
+      // Invalidate documents cache and redirect after a short delay
+      await queryClient.invalidateQueries({ queryKey: getGetApiV1DocumentsQueryKey() })
       setTimeout(() => {
         router.push('/documents')
       }, 1500)

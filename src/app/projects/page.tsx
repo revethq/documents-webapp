@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import AppLayout from "@/components/app-layout";
 import PageHeader from "@/components/page-header";
 import EmptyState from "@/components/empty-state";
@@ -11,6 +12,7 @@ import type { ProjectDTO } from "@/lib/api/models/projectDTO";
 import type { OrganizationDTO } from "@/lib/api/models/organizationDTO";
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useGetApiV1Projects();
   const { data: orgsResponse, isLoading: orgsLoading } = useGetApiV1Organizations();
 
@@ -87,7 +89,7 @@ export default function ProjectsPage() {
         title="Projects"
         description="Browse and manage all projects across your organizations."
         actionLabel="New project"
-        onAction={() => console.log("Create project")}
+        onAction={() => router.push('/projects/new')}
       />
 
       {projects.length === 0 ? (
@@ -97,7 +99,7 @@ export default function ProjectsPage() {
             title="No projects"
             description="Get started by creating a new project within an organization."
             actionLabel="New Project"
-            onAction={() => console.log("Create project")}
+            onAction={() => router.push('/projects/new')}
           />
         </div>
       ) : (
