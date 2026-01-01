@@ -2,14 +2,16 @@
 
 import { useState, useMemo, useRef, useEffect, startTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import AppLayout from "@/components/app-layout"
 import PageHeader from "@/components/page-header"
 import EmptyState from "@/components/empty-state"
+import { ErrorBanner } from "@/components/error-banner"
+import { Link } from "@/components/link"
 import { DocumentDuplicateIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline"
-import { getApiV1Documents, getGetApiV1DocumentsQueryKey, getApiV1DocumentsUuidDownload } from '@/lib/api/generated/documents/documents'
-import type { DocumentDTO, ProjectDTO, CategoryDTO, PageDTO, TagDTO, OrganizationDTO } from '@/lib/api/models'
+import { getApiV1Documents, getGetApiV1DocumentsQueryKey, getGetApiV1DocumentsUuidDownloadQueryOptions } from '@/lib/api/generated/documents/documents'
+import type { ProjectDTO, CategoryDTO, PageDTO, TagDTO, OrganizationDTO } from '@/lib/api/models'
 import { useGetApiV1Projects } from '@/lib/api/generated/projects/projects'
 import { useGetApiV1Categories } from '@/lib/api/generated/categories/categories'
 import { useGetApiV1Tags } from '@/lib/api/generated/tags/tags'
@@ -18,6 +20,7 @@ import { Input, InputGroup } from '@/components/input'
 import { Select } from '@/components/select'
 import { Badge } from '@/components/badge'
 import { TagPicker } from '@/components/tag-picker'
+import { getErrorMessage } from '@/lib/errors'
 
 const PAGE_SIZE = 50
 
@@ -32,7 +35,9 @@ function formatDate(dateString: string): string {
 
 export default function DocumentsPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
   const [selectedOrganizationUuid, setSelectedOrganizationUuid] = useState<string | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
@@ -66,6 +71,7 @@ export default function DocumentsPage() {
     hasNextPage,
     isFetchingNextPage,
     isLoading: documentsLoading,
+    error: documentsError,
   } = useInfiniteQuery({
     queryKey: getGetApiV1DocumentsQueryKey(queryParams),
     queryFn: async ({ pageParam = 0 }) => {
@@ -86,14 +92,18 @@ export default function DocumentsPage() {
 
   // Flatten all pages into single array
   const allDocuments = useMemo(() => {
-    return data?.pages.flatMap(page => page.content as DocumentDTO[]) ?? []
+    return (
+      data?.pages.flatMap(page =>
+        Array.isArray(page?.content) ? page.content : []
+      ).filter(Boolean) ?? []
+    )
   }, [data])
 
   // Virtual list setup
   const virtualizer = useVirtualizer({
     count: hasNextPage ? allDocuments.length + 1 : allDocuments.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 140, // Estimated row height (accounts for tags wrapping)
+    estimateSize: () => 100, // Estimated row height
     overscan: 5,
     isScrollingResetDelay: 0, // Workaround for flushSync error in v3.13.13
   })
@@ -125,18 +135,18 @@ export default function DocumentsPage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // Fetch projects for filter dropdown
-  const { data: projectsResponse } = useGetApiV1Projects()
+  const { data: projectsResponse, error: projectsError } = useGetApiV1Projects()
 
   // Fetch categories, filtered by project if selected
-  const { data: categoriesResponse } = useGetApiV1Categories(
+  const { data: categoriesResponse, error: categoriesError } = useGetApiV1Categories(
     selectedProjectId !== null ? { projectId: selectedProjectId } : undefined
   )
 
   // Fetch all available tags from API
-  const { data: tagsResponse } = useGetApiV1Tags()
+  const { data: tagsResponse, error: tagsError } = useGetApiV1Tags()
 
   // Fetch organizations to check bucket configuration
-  const { data: organizationsResponse } = useGetApiV1Organizations()
+  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations()
 
   const projects = useMemo(() => {
     if (!projectsResponse) return []
@@ -212,7 +222,8 @@ export default function DocumentsPage() {
 
   const handleDownload = async (documentUuid: string) => {
     try {
-      const response = await getApiV1DocumentsUuidDownload(documentUuid)
+      const queryOptions = getGetApiV1DocumentsUuidDownloadQueryOptions(documentUuid)
+      const response = await queryClient.fetchQuery(queryOptions)
 
       // Fetch the file from the presigned URL
       const fileResponse = await fetch(response.downloadUrl)
@@ -230,9 +241,22 @@ export default function DocumentsPage() {
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
-      console.error('Download failed:', error)
+      setActionError(getErrorMessage(error, 'Download failed. Please try again.'))
     }
   }
+
+  const queryError =
+    documentsError ||
+    projectsError ||
+    categoriesError ||
+    tagsError ||
+    organizationsError
+
+  const errorMessage = actionError
+    ? actionError
+    : queryError
+      ? getErrorMessage(queryError, 'Failed to load documents. Please try again.')
+      : null
 
   return (
     <AppLayout>
@@ -242,6 +266,12 @@ export default function DocumentsPage() {
         actionLabel="Upload document"
         onAction={() => router.push('/documents/new')}
       />
+      {errorMessage && (
+        <ErrorBanner
+          message={errorMessage}
+          onDismiss={actionError ? () => setActionError(null) : undefined}
+        />
+      )}
 
       {/* Search and Filter Bar */}
       <div className="mt-6 space-y-4">
@@ -461,7 +491,7 @@ export default function DocumentsPage() {
       ) : (
         <div
           ref={parentRef}
-          className="mt-8 h-[calc(100vh-300px)] overflow-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+          className="mt-6 h-[calc(100vh-290px)] overflow-auto rounded-lg border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
         >
           <div
             style={{
@@ -492,17 +522,17 @@ export default function DocumentsPage() {
                       <div className="size-6 animate-spin rounded-full border-2 border-zinc-300 border-t-blue-600 dark:border-zinc-600 dark:border-t-blue-400" />
                       <span className="ml-2 text-sm text-zinc-500 dark:text-zinc-400">Loading more...</span>
                     </div>
-                  ) : (
-                    <div className="flex h-full items-center justify-between gap-x-6 border-b border-zinc-200 px-4 dark:border-zinc-700">
-                      <div className="flex min-w-0 gap-x-4">
-                        <DocumentDuplicateIcon className="size-12 flex-none rounded-lg bg-gray-50 p-2 text-gray-600 dark:bg-gray-800 dark:text-gray-400" />
+                  ) : document ? (
+                    <div className="flex h-full items-center justify-between gap-x-5 border-b border-zinc-200 px-4 py-2 dark:border-zinc-700">
+                      <div className="flex min-w-0 gap-x-3">
+                        <DocumentDuplicateIcon className="size-10 flex-none rounded-lg bg-gray-50 p-2 text-gray-600 dark:bg-gray-800 dark:text-gray-400" />
                         <div className="min-w-0 flex-auto">
                           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                            <a href={`/documents/${document.uuid}`} className="hover:underline">
+                            <Link href={`/documents/${document.uuid}`} className="hover:underline">
                               {document.name}
-                            </a>
+                            </Link>
                           </p>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500 dark:text-gray-400">
                             <span className="truncate">{getProjectName(document.projectId)}</span>
                             {document.categoryId && (
                               <>
@@ -518,7 +548,7 @@ export default function DocumentsPage() {
                             )}
                           </div>
                           {document.tags && document.tags.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1.5">
+                            <div className="mt-1.5 flex flex-wrap gap-1">
                               {document.tags.map((tagSlug: string) => (
                                 <Badge key={tagSlug} color="zinc">
                                   {getTagName(tagSlug)}
@@ -528,7 +558,7 @@ export default function DocumentsPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-none items-center gap-x-4">
+                      <div className="flex flex-none items-center gap-x-3">
                         <div className="hidden sm:flex sm:flex-col sm:items-end">
                           <p className="text-sm text-gray-900 dark:text-white">
                             {formatDate(document.date)}
@@ -551,13 +581,17 @@ export default function DocumentsPage() {
                             <ArrowDownTrayIcon className="size-5" />
                           </span>
                         )}
-                        <a
+                        <Link
                           href={`/documents/${document.uuid}`}
-                          className="mr-4 rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:ring-0 dark:hover:bg-white/20"
+                          className="rounded-md bg-white px-2.5 py-1 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:ring-0 dark:hover:bg-white/20"
                         >
                           View
-                        </a>
+                        </Link>
                       </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
+                      Document unavailable
                     </div>
                   )}
                 </div>

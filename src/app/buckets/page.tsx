@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import AppLayout from '@/components/app-layout'
 import PageHeader from '@/components/page-header'
 import EmptyState from '@/components/empty-state'
-import { CircleStackIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { CircleStackIcon } from '@heroicons/react/24/outline'
 import { useGetApiV1Buckets, usePostApiV1Buckets, usePutApiV1BucketsId, useDeleteApiV1BucketsId } from '@/lib/api/generated/buckets/buckets'
 import { useQueryClient } from '@tanstack/react-query'
 import type { BucketDTO, CreateBucketRequest, UpdateBucketRequest } from '@/lib/api/models'
@@ -172,8 +172,9 @@ export default function BucketsPage() {
       />
 
       {isLoading ? (
-        <div className="mt-8 flex items-center justify-center py-12">
-          <div className="size-8 animate-spin rounded-full border-4 border-zinc-300 border-t-blue-600 dark:border-zinc-600 dark:border-t-blue-400" />
+        <div className="mt-8 text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent dark:border-indigo-400"></div>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading storage buckets...</p>
         </div>
       ) : buckets.length === 0 ? (
         <div className="mt-8">
@@ -186,99 +187,85 @@ export default function BucketsPage() {
           />
         </div>
       ) : (
-        <div className="mt-8">
-          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Provider
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Bucket
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Region
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                    Status
-                  </th>
-                  <th className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
-                {buckets.map((bucket) => (
-                  <tr key={bucket.id}>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{bucket.name}</div>
-                      {bucket.endpoint && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">{bucket.endpoint}</div>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {providerLabels[bucket.provider] || bucket.provider}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {bucket.bucketName}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                      {bucket.region || '-'}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span
-                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                          bucket.isActive
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                        }`}
-                      >
-                        {bucket.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEditModal(bucket)}
-                          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                          title="Edit"
-                        >
-                          <PencilIcon className="size-5" />
-                        </button>
-                        {deleteConfirmId === bucket.id ? (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleDelete(bucket.id!)}
-                              className="rounded bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => setDeleteConfirmId(null)}
-                              className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setDeleteConfirmId(bucket.id!)}
-                            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-800 dark:hover:text-red-400"
-                            title="Delete"
-                          >
-                            <TrashIcon className="size-5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
+        <div className="mt-8 flow-root">
+          <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+              <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
+                <thead>
+                  <tr>
+                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white sm:pl-0">
+                      Name
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      Provider
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      Bucket
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                      Region
+                    </th>
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-0">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {buckets.map((bucket) => (
+                    <tr key={bucket.id}>
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 sm:pl-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">{bucket.name}</div>
+                        {bucket.endpoint && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{bucket.endpoint}</div>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {providerLabels[bucket.provider] || bucket.provider}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {bucket.bucketName}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {bucket.region || '-'}
+                      </td>
+                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => openEditModal(bucket)}
+                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          >
+                            Edit
+                          </button>
+                          {deleteConfirmId === bucket.id ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleDelete(bucket.id!)}
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirmId(bucket.id!)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

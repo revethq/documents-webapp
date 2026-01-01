@@ -13,6 +13,7 @@ import { Text } from '@/components/text'
 import { DescriptionList, DescriptionTerm, DescriptionDetails } from '@/components/description-list'
 import { Dialog, DialogTitle, DialogDescription, DialogBody, DialogActions } from '@/components/dialog'
 import { TagPicker } from '@/components/tag-picker'
+import { ErrorBanner } from '@/components/error-banner'
 import {
   ArrowDownTrayIcon,
   ArrowLeftIcon,
@@ -32,13 +33,14 @@ import {
 } from '@/lib/api/generated/documents/documents'
 import {
   useGetApiV1DocumentVersions,
-  getApiV1DocumentVersionsUuid,
+  getGetApiV1DocumentVersionsUuidQueryOptions,
 } from '@/lib/api/generated/document-versions/document-versions'
 import { useGetApiV1Projects } from '@/lib/api/generated/projects/projects'
 import { useGetApiV1Organizations } from '@/lib/api/generated/organizations/organizations'
-import { useGetApiV1Tags, postApiV1Tags } from '@/lib/api/generated/tags/tags'
+import { useGetApiV1Tags, usePostApiV1Tags } from '@/lib/api/generated/tags/tags'
 import { useGetApiV1Categories } from '@/lib/api/generated/categories/categories'
 import type { DocumentVersionDTO, ProjectDTO, OrganizationDTO, TagDTO, CategoryDTO } from '@/lib/api/models'
+import { getErrorMessage } from '@/lib/errors'
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
@@ -70,34 +72,35 @@ export default function DocumentDetailPage() {
   const [editCategoryId, setEditCategoryId] = useState<number | null>(null)
   const [editTags, setEditTags] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Delete state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Fetch document details
-  const { data: document, isLoading: isLoadingDocument } = useGetApiV1DocumentsUuidUuid(
+  const { data: document, isLoading: isLoadingDocument, error: documentError } = useGetApiV1DocumentsUuidUuid(
     documentUuid,
     { query: { enabled: !!documentUuid } }
   )
 
   // Fetch document versions
-  const { data: versionsResponse, isLoading: isLoadingVersions } = useGetApiV1DocumentVersions(
+  const { data: versionsResponse, isLoading: isLoadingVersions, error: versionsError } = useGetApiV1DocumentVersions(
     document?.id ? { documentId: document.id } : undefined,
     { query: { enabled: !!document?.id } }
   )
 
   // Fetch projects to get organization info
-  const { data: projectsResponse } = useGetApiV1Projects()
+  const { data: projectsResponse, error: projectsError } = useGetApiV1Projects()
 
   // Fetch organizations to check bucket configuration
-  const { data: organizationsResponse } = useGetApiV1Organizations()
+  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations()
 
   // Fetch tags
-  const { data: tagsResponse, refetch: refetchTags } = useGetApiV1Tags()
+  const { data: tagsResponse, refetch: refetchTags, error: tagsError } = useGetApiV1Tags()
 
   // Fetch categories for the document's project
-  const { data: categoriesResponse } = useGetApiV1Categories(
+  const { data: categoriesResponse, error: categoriesError } = useGetApiV1Categories(
     document?.projectId ? { projectId: document.projectId } : undefined,
     { query: { enabled: !!document?.projectId } }
   )
@@ -105,6 +108,7 @@ export default function DocumentDetailPage() {
   // Mutations
   const updateDocument = usePutApiV1DocumentsId()
   const deleteDocument = useDeleteApiV1DocumentsId()
+  const createTag = usePostApiV1Tags()
 
   // Parse projects
   const projects: ProjectDTO[] = useMemo(() => {
@@ -178,7 +182,8 @@ export default function DocumentDetailPage() {
   const handleDownload = async (versionUuid: string, fileName: string) => {
     try {
       // Fetch the version to get a fresh presigned download URL
-      const version = await getApiV1DocumentVersionsUuid(versionUuid)
+      const queryOptions = getGetApiV1DocumentVersionsUuidQueryOptions(versionUuid)
+      const version = await queryClient.fetchQuery(queryOptions)
 
       if (!version.downloadUrl) {
         return
@@ -196,8 +201,8 @@ export default function DocumentDetailPage() {
 
       window.URL.revokeObjectURL(url)
       window.document.body.removeChild(a)
-    } catch {
-      // Download failed silently
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Download failed. Please try again.'))
     }
   }
 
@@ -232,8 +237,8 @@ export default function DocumentDetailPage() {
       // Invalidate the document query to refetch
       queryClient.invalidateQueries({ queryKey: getGetApiV1DocumentsUuidUuidQueryKey(documentUuid) })
       setIsEditing(false)
-    } catch {
-      // Update failed silently
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Update failed. Please try again.'))
     } finally {
       setIsSaving(false)
     }
@@ -241,9 +246,14 @@ export default function DocumentDetailPage() {
 
   // Handle create tag
   const handleCreateTag = async (name: string) => {
-    const newTag = await postApiV1Tags({ name })
-    await refetchTags()
-    return newTag
+    try {
+      const newTag = await createTag.mutateAsync({ data: { name } })
+      await refetchTags()
+      return newTag
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Unable to create tag.'))
+      throw error
+    }
   }
 
   // Handle delete
@@ -254,7 +264,8 @@ export default function DocumentDetailPage() {
     try {
       await deleteDocument.mutateAsync({ id: document.id })
       router.push('/documents')
-    } catch {
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Delete failed. Please try again.'))
       setIsDeleting(false)
     }
   }
@@ -267,6 +278,18 @@ export default function DocumentDetailPage() {
   }
 
   const isLoading = isLoadingDocument || isLoadingVersions
+  const queryError =
+    documentError ||
+    versionsError ||
+    projectsError ||
+    organizationsError ||
+    tagsError ||
+    categoriesError
+  const errorMessage = actionError
+    ? actionError
+    : queryError
+      ? getErrorMessage(queryError, 'Failed to load document details.')
+      : null
 
   if (isLoading) {
     return (
@@ -285,7 +308,7 @@ export default function DocumentDetailPage() {
           <DocumentIcon className="mx-auto size-12 text-zinc-400" />
           <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-white">Document not found</h3>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            The document you're looking for doesn't exist or you don't have access to it.
+            The document you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
           </p>
           <div className="mt-6">
             <Button onClick={() => router.push('/documents')}>
@@ -308,6 +331,12 @@ export default function DocumentDetailPage() {
         actionDisabled={!hasBucket}
         actionDisabledReason="Organization does not have storage configured"
       />
+      {errorMessage && (
+        <ErrorBanner
+          message={errorMessage}
+          onDismiss={actionError ? () => setActionError(null) : undefined}
+        />
+      )}
 
       {/* Document Info */}
       <div className="mt-8 grid gap-8 lg:grid-cols-3">
@@ -519,7 +548,7 @@ export default function DocumentDetailPage() {
       <Dialog open={showDeleteDialog} onClose={setShowDeleteDialog}>
         <DialogTitle>Delete Document</DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete "{document.name}" and all of its versions? This action cannot be undone.
+          Are you sure you want to delete &quot;{document.name}&quot; and all of its versions? This action cannot be undone.
         </DialogDescription>
         <DialogBody>
           <Text>

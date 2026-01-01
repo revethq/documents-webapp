@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AppLayout from "@/components/app-layout";
 import PageHeader from "@/components/page-header";
 import EmptyState from "@/components/empty-state";
+import { Link } from "@/components/link";
 import { FolderIcon } from "@heroicons/react/24/outline";
 import { useGetApiV1Projects } from "@/lib/api/generated/projects/projects";
 import { useGetApiV1Organizations } from "@/lib/api/generated/organizations/organizations";
@@ -16,14 +17,22 @@ export default function ProjectsPage() {
   const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useGetApiV1Projects();
   const { data: orgsResponse, isLoading: orgsLoading } = useGetApiV1Organizations();
 
-  // The API returns an array directly
+  const normalizeList = <T,>(response: unknown): T[] => {
+    if (!response) return [];
+    if (Array.isArray(response)) return response as T[];
+    if (typeof response === 'object' && response && 'content' in response) {
+      return (response as { content: T[] }).content ?? [];
+    }
+    return [response as T];
+  };
+
   const projects = useMemo(
-    () => (projectsResponse as unknown as ProjectDTO[]) ?? [],
+    () => normalizeList<ProjectDTO>(projectsResponse),
     [projectsResponse]
   );
 
   const organizations = useMemo(
-    () => (orgsResponse as unknown as OrganizationDTO[]) ?? [],
+    () => normalizeList<OrganizationDTO>(orgsResponse),
     [orgsResponse]
   );
 
@@ -122,10 +131,10 @@ export default function ProjectsPage() {
                       <div className="flex items-center gap-x-3">
                         <FolderIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          <a href={`/projects/${project.id}/edit`} className="focus:outline-none">
+                          <Link href={`/projects/${project.uuid}`} className="focus:outline-none">
                             <span className="absolute inset-0" aria-hidden="true" />
                             {project.name}
-                          </a>
+                          </Link>
                         </h3>
                       </div>
                       {project.description && (
@@ -133,7 +142,7 @@ export default function ProjectsPage() {
                           {project.description}
                         </p>
                       )}
-                      {project.tags.length > 0 && (
+                      {project.tags?.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2">
                           {project.tags.slice(0, 3).map((tag) => (
                             <span

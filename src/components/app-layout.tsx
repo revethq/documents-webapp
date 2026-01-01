@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Dialog, DialogBackdrop, DialogPanel, TransitionChild } from '@headlessui/react'
+import { useAuth } from 'react-oidc-context'
+import { Link } from '@/components/link'
 import {
   Bars3Icon,
   BuildingOfficeIcon,
@@ -34,6 +36,12 @@ function classNames(...classes: string[]) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const auth = useAuth()
+  const displayName =
+    auth.user?.profile?.name ||
+    auth.user?.profile?.preferred_username ||
+    auth.user?.profile?.email ||
+    'Account'
 
   return (
     <>
@@ -66,7 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <ul role="list" className="-mx-2 space-y-1">
                         {navigation.map((item) => (
                           <li key={item.name}>
-                            <a
+                            <Link
                               href={item.href}
                               className={classNames(
                                 isCurrentPath(pathname, item.href)
@@ -85,7 +93,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 )}
                               />
                               {item.name}
-                            </a>
+                            </Link>
                           </li>
                         ))}
                       </ul>
@@ -109,7 +117,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       <ul role="list" className="-mx-2 space-y-1">
                         {navigation.map((item) => (
                           <li key={item.name}>
-                            <a
+                            <Link
                               href={item.href}
                               className={classNames(
                                 isCurrentPath(pathname, item.href)
@@ -128,7 +136,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                                 )}
                               />
                               {item.name}
-                            </a>
+                            </Link>
                           </li>
                         ))}
                       </ul>
@@ -136,18 +144,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </ul>
                 </li>
                 <li className="-mx-6 mt-auto">
-                  <a
-                    href="#"
-                    className="flex items-center gap-x-4 px-6 py-3 text-sm/6 font-semibold text-gray-900 hover:bg-gray-50 dark:text-white dark:hover:bg-white/5"
-                  >
-                    <img
-                      alt=""
-                      src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                      className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5 dark:bg-gray-800 dark:outline-white/10"
-                    />
-                    <span className="sr-only">Your profile</span>
-                    <span aria-hidden="true">Tom Cook</span>
-                  </a>
+                  <div className="flex items-center gap-x-3 px-6 py-3 text-sm/6 font-semibold text-gray-900 dark:text-white">
+                    <span className="sr-only">Signed in as</span>
+                    <span aria-hidden="true">{displayName}</span>
+                  </div>
                 </li>
               </ul>
             </nav>
@@ -164,14 +164,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <span className="sr-only">Open sidebar</span>
               <Bars3Icon aria-hidden="true" className="size-6" />
             </button>
-            <a href="/settings">
-              <span className="sr-only">Your profile</span>
-              <img
-                alt=""
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                className="size-8 rounded-full bg-gray-50 outline -outline-offset-1 outline-black/5 dark:bg-gray-800 dark:outline-white/10"
-              />
-            </a>
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">
+              {displayName}
+            </div>
           </div>
         </div>
 

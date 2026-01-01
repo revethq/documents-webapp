@@ -12,6 +12,7 @@ import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import { Badge } from '@/components/badge'
 import { TagPicker } from '@/components/tag-picker'
+import { ErrorBanner } from '@/components/error-banner'
 import {
   CloudArrowUpIcon,
   CheckCircleIcon,
@@ -27,11 +28,12 @@ import { CheckIcon } from '@heroicons/react/24/solid'
 import { useGetApiV1Organizations } from '@/lib/api/generated/organizations/organizations'
 import { useGetApiV1Projects } from '@/lib/api/generated/projects/projects'
 import { useGetApiV1Categories } from '@/lib/api/generated/categories/categories'
-import { useGetApiV1Tags, postApiV1Tags } from '@/lib/api/generated/tags/tags'
-import { postApiV1Documents, getGetApiV1DocumentsQueryKey } from '@/lib/api/generated/documents/documents'
-import { postApiV1FilesInitiateUpload } from '@/lib/api/generated/files/files'
-import { putApiV1DocumentVersionsUuidCompleteUpload } from '@/lib/api/generated/document-versions/document-versions'
+import { useGetApiV1Tags, usePostApiV1Tags } from '@/lib/api/generated/tags/tags'
+import { usePostApiV1Documents, getGetApiV1DocumentsQueryKey } from '@/lib/api/generated/documents/documents'
+import { usePostApiV1FilesInitiateUpload } from '@/lib/api/generated/files/files'
+import { usePutApiV1DocumentVersionsUuidCompleteUpload } from '@/lib/api/generated/document-versions/document-versions'
 import type { OrganizationDTO, ProjectDTO, CategoryDTO, TagDTO } from '@/lib/api/models'
+import { getErrorMessage } from '@/lib/errors'
 
 type Step = 'organization' | 'project' | 'details' | 'upload'
 
@@ -62,6 +64,7 @@ export default function NewDocumentPage() {
   const [documentName, setDocumentName] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Upload state
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -75,16 +78,20 @@ export default function NewDocumentPage() {
   const [isDragging, setIsDragging] = useState(false)
 
   // API queries
-  const { data: organizationsResponse } = useGetApiV1Organizations()
-  const { data: projectsResponse } = useGetApiV1Projects(
+  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations()
+  const { data: projectsResponse, error: projectsError } = useGetApiV1Projects(
     selectedOrgId ? { organizationId: selectedOrgId } : undefined,
     { query: { enabled: selectedOrgId !== null } }
   )
-  const { data: categoriesResponse } = useGetApiV1Categories(
+  const { data: categoriesResponse, error: categoriesError } = useGetApiV1Categories(
     selectedProjectId ? { projectId: selectedProjectId } : undefined,
     { query: { enabled: selectedProjectId !== null } }
   )
-  const { data: tagsResponse, refetch: refetchTags } = useGetApiV1Tags()
+  const { data: tagsResponse, refetch: refetchTags, error: tagsError } = useGetApiV1Tags()
+  const createTag = usePostApiV1Tags()
+  const createDocument = usePostApiV1Documents()
+  const initiateUpload = usePostApiV1FilesInitiateUpload()
+  const completeUpload = usePutApiV1DocumentVersionsUuidCompleteUpload()
 
   // Parse responses
   const organizations: OrganizationDTO[] = (() => {
@@ -115,9 +122,7 @@ export default function NewDocumentPage() {
     return [tagsResponse]
   })()
 
-  // Get the selected project's existing tags
-  const selectedProject = projects.find(p => p.id === selectedProjectId)
-  const projectTags = selectedProject?.tags ?? []
+
 
   // Get current step index
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep)
@@ -154,9 +159,14 @@ export default function NewDocumentPage() {
 
   // Create tag handler for TagPicker
   const handleCreateTag = async (name: string) => {
-    const newTag = await postApiV1Tags({ name })
-    await refetchTags()
-    return newTag
+    try {
+      const newTag = await createTag.mutateAsync({ data: { name } })
+      await refetchTags()
+      return newTag
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Unable to create tag.'))
+      throw error
+    }
   }
 
   // File handling
@@ -205,12 +215,14 @@ export default function NewDocumentPage() {
 
     try {
       // Step 1: Create the document
-      const document = await postApiV1Documents({
-        name: documentName || selectedFile.name,
-        projectId: selectedProjectId,
-        categoryId: selectedCategoryId,
-        mime: selectedFile.type || 'application/octet-stream',
-        tags: selectedTags,
+      const document = await createDocument.mutateAsync({
+        data: {
+          name: documentName || selectedFile.name,
+          projectId: selectedProjectId,
+          categoryId: selectedCategoryId,
+          mime: selectedFile.type || 'application/octet-stream',
+          tags: selectedTags,
+        },
       })
 
       if (!document.uuid) {
@@ -218,10 +230,12 @@ export default function NewDocumentPage() {
       }
 
       // Step 2: Initiate upload to get presigned URL
-      const uploadInit = await postApiV1FilesInitiateUpload({
-        documentUuid: document.uuid,
-        fileName: selectedFile.name,
-        contentType: selectedFile.type || 'application/octet-stream',
+      const uploadInit = await initiateUpload.mutateAsync({
+        data: {
+          documentUuid: document.uuid,
+          fileName: selectedFile.name,
+          contentType: selectedFile.type || 'application/octet-stream',
+        },
       })
 
       // Step 3: Upload file to S3 using XMLHttpRequest for progress tracking
@@ -253,7 +267,7 @@ export default function NewDocumentPage() {
       // Step 4: Complete the upload
       setUploadState(prev => ({ ...prev, status: 'processing' }))
 
-      await putApiV1DocumentVersionsUuidCompleteUpload(uploadInit.documentVersionUuid)
+      await completeUpload.mutateAsync({ uuid: uploadInit.documentVersionUuid })
 
       setUploadState(prev => ({ ...prev, status: 'complete', progress: 100 }))
 
@@ -264,7 +278,7 @@ export default function NewDocumentPage() {
       }, 1500)
 
     } catch (error) {
-      console.error('Upload error:', error)
+      setActionError(getErrorMessage(error, 'Upload failed. Please try again.'))
       setUploadState(prev => ({
         ...prev,
         status: 'error',
@@ -276,6 +290,12 @@ export default function NewDocumentPage() {
   // Get selected names for display
   const selectedOrgName = organizations.find(o => o.id === selectedOrgId)?.name
   const selectedProjectName = projects.find(p => p.id === selectedProjectId)?.name
+  const queryError = organizationsError || projectsError || categoriesError || tagsError
+  const errorMessage = actionError
+    ? actionError
+    : queryError
+      ? getErrorMessage(queryError, 'Failed to load form data. Please try again.')
+      : null
 
   return (
     <AppLayout>
@@ -285,6 +305,12 @@ export default function NewDocumentPage() {
           <Heading>Upload Document</Heading>
           <Text className="mt-2">Add a new document to your project.</Text>
         </div>
+        {errorMessage && (
+          <ErrorBanner
+            message={errorMessage}
+            onDismiss={actionError ? () => setActionError(null) : undefined}
+          />
+        )}
 
         {/* Step indicator */}
         <nav aria-label="Progress" className="mb-8">

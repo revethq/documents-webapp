@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import AppLayout from "@/components/app-layout";
+import { Link } from "@/components/link";
 import { useGetApiV1OrganizationsUuidUuid, usePutApiV1OrganizationsId } from "@/lib/api/generated/organizations/organizations";
 import { useGetApiV1Projects } from "@/lib/api/generated/projects/projects";
 import { useGetApiV1Buckets } from "@/lib/api/generated/buckets/buckets";
@@ -11,18 +12,9 @@ import type { ProjectDTO, BucketDTO } from "@/lib/api/models";
 
 type TabType = 'projects' | 'storage' | 'settings' | 'users';
 
-// API returns 'active' but OpenAPI spec generates 'isActive' - handle both
-interface BucketWithActive extends BucketDTO {
-  active?: boolean;
-}
 
-function isBucketActive(bucket: BucketDTO): boolean {
-  const b = bucket as BucketWithActive;
-  // Check both field names since API returns 'active' but type has 'isActive'
-  if (b.active !== undefined) return b.active;
-  if (b.isActive !== undefined) return b.isActive;
-  return true; // Default to active if neither field is present
-}
+
+
 
 const providerLabels: Record<string, string> = {
   S3: 'Amazon S3',
@@ -237,7 +229,7 @@ export default function OrganizationDetailPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {projects.map((project: any) => (
+                  {projects.map((project) => (
                     <div
                       key={project.id}
                       onClick={() => router.push(`/projects/${project.uuid}`)}
@@ -279,12 +271,12 @@ export default function OrganizationDetailPage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-medium text-gray-900 dark:text-white">Storage Configuration</h2>
-                <a
+                <Link
                   href="/buckets"
                   className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
                 >
                   Manage Buckets
-                </a>
+                </Link>
               </div>
               <div className="bg-white dark:bg-white/5 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10 sm:rounded-xl">
                 <div className="px-4 py-6 sm:p-8">
@@ -297,12 +289,12 @@ export default function OrganizationDetailPage() {
                       <p className="text-gray-500 dark:text-gray-400">
                         No storage buckets available.
                       </p>
-                      <a
+                      <Link
                         href="/buckets"
                         className="mt-4 inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
                       >
                         Configure a Bucket
-                      </a>
+                      </Link>
                     </div>
                   ) : (
                     <div>
@@ -442,7 +434,7 @@ export default function OrganizationDetailPage() {
 
               <div className="text-center py-12 bg-gray-50 rounded-lg dark:bg-white/5">
                 <p className="text-gray-500 dark:text-gray-400">
-                  User management coming soon. You'll be able to invite users and manage permissions here.
+                  User management coming soon. You&apos;ll be able to invite users and manage permissions here.
                 </p>
               </div>
             </div>

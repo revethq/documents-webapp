@@ -10,6 +10,7 @@ import { Input } from '@/components/input'
 import { Field, Label, Description } from '@/components/fieldset'
 import { Text } from '@/components/text'
 import { Badge } from '@/components/badge'
+import { ErrorBanner } from '@/components/error-banner'
 import {
   CloudArrowUpIcon,
   CheckCircleIcon,
@@ -21,11 +22,12 @@ import {
   useGetApiV1DocumentsUuidUuid,
   getGetApiV1DocumentsUuidUuidQueryKey,
 } from '@/lib/api/generated/documents/documents'
-import { postApiV1FilesInitiateUpload } from '@/lib/api/generated/files/files'
+import { usePostApiV1FilesInitiateUpload } from '@/lib/api/generated/files/files'
 import {
-  putApiV1DocumentVersionsUuidCompleteUpload,
+  usePutApiV1DocumentVersionsUuidCompleteUpload,
   getGetApiV1DocumentVersionsQueryKey,
 } from '@/lib/api/generated/document-versions/document-versions'
+import { getErrorMessage } from '@/lib/errors'
 
 interface UploadState {
   status: 'idle' | 'uploading' | 'processing' | 'complete' | 'error'
@@ -44,6 +46,7 @@ export default function NewVersionPage() {
   // Form state
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [versionName, setVersionName] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Upload state
   const [uploadState, setUploadState] = useState<UploadState>({
@@ -57,10 +60,12 @@ export default function NewVersionPage() {
   const [isDragging, setIsDragging] = useState(false)
 
   // Fetch document details
-  const { data: document, isLoading } = useGetApiV1DocumentsUuidUuid(
+  const { data: document, isLoading, error: documentError } = useGetApiV1DocumentsUuidUuid(
     documentUuid,
     { query: { enabled: !!documentUuid } }
   )
+  const initiateUpload = usePostApiV1FilesInitiateUpload()
+  const completeUpload = usePutApiV1DocumentVersionsUuidCompleteUpload()
 
   // File handling
   const handleFileSelect = useCallback((file: File) => {
@@ -111,10 +116,12 @@ export default function NewVersionPage() {
 
     try {
       // Step 1: Initiate upload to get presigned URL
-      const uploadInit = await postApiV1FilesInitiateUpload({
-        documentUuid: document.uuid,
-        fileName: versionName || selectedFile.name,
-        contentType: selectedFile.type || 'application/octet-stream',
+      const uploadInit = await initiateUpload.mutateAsync({
+        data: {
+          documentUuid: document.uuid,
+          fileName: versionName || selectedFile.name,
+          contentType: selectedFile.type || 'application/octet-stream',
+        },
       })
 
       // Step 2: Upload file to S3 using XMLHttpRequest for progress tracking
@@ -146,7 +153,7 @@ export default function NewVersionPage() {
       // Step 3: Complete the upload
       setUploadState(prev => ({ ...prev, status: 'processing' }))
 
-      await putApiV1DocumentVersionsUuidCompleteUpload(uploadInit.documentVersionUuid)
+      await completeUpload.mutateAsync({ uuid: uploadInit.documentVersionUuid })
 
       // Invalidate queries so document details page shows new version
       await queryClient.invalidateQueries({
@@ -164,6 +171,7 @@ export default function NewVersionPage() {
       }, 1500)
 
     } catch (error) {
+      setActionError(getErrorMessage(error, 'Upload failed. Please try again.'))
       setUploadState(prev => ({
         ...prev,
         status: 'error',
@@ -171,6 +179,11 @@ export default function NewVersionPage() {
       }))
     }
   }
+  const errorMessage = actionError
+    ? actionError
+    : documentError
+      ? getErrorMessage(documentError, 'Failed to load document data.')
+      : null
 
   if (isLoading) {
     return (
@@ -189,7 +202,7 @@ export default function NewVersionPage() {
           <DocumentIcon className="mx-auto size-12 text-zinc-400" />
           <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-white">Document not found</h3>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            The document you're looking for doesn't exist or you don't have access to it.
+            The document you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
           </p>
           <div className="mt-6">
             <Button onClick={() => router.push('/documents')}>
@@ -208,6 +221,12 @@ export default function NewVersionPage() {
         title="Upload New Version"
         description={`Adding a new version to "${document.name}"`}
       />
+      {errorMessage && (
+        <ErrorBanner
+          message={errorMessage}
+          onDismiss={actionError ? () => setActionError(null) : undefined}
+        />
+      )}
 
       <div className="mx-auto mt-8 max-w-2xl">
         <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800/50">

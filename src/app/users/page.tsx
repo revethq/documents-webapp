@@ -3,11 +3,15 @@
 import AppLayout from "@/components/app-layout";
 import PageHeader from "@/components/page-header";
 import EmptyState from "@/components/empty-state";
-import { UsersIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import { Link } from "@/components/link";
+import { EnvelopeIcon } from "@heroicons/react/24/outline";
+import Image from "next/image";
+
+import type { UserDTO } from '@/lib/api/models';
 
 export default function UsersPage() {
   // TODO: Fetch users from API
-  const users: any[] = [];
+  const users: UserDTO[] = [];
 
   return (
     <AppLayout>
@@ -34,16 +38,18 @@ export default function UsersPage() {
             {users.map((user) => (
               <li key={user.id} className="flex items-center justify-between gap-x-6 py-5">
                 <div className="flex min-w-0 gap-x-4">
-                  <img
+                  <Image
                     alt=""
                     src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=4f46e5&color=fff`}
                     className="h-12 w-12 flex-none rounded-full bg-gray-50 dark:bg-gray-800"
+                    width={48}
+                    height={48}
                   />
                   <div className="min-w-0 flex-auto">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                      <a href={`/users/${user.id}`} className="hover:underline">
+                      <Link href={`/users/${user.id}`} className="hover:underline">
                         {user.name}
-                      </a>
+                      </Link>
                     </p>
                     <p className="mt-1 flex text-xs text-gray-500 dark:text-gray-400">
                       <span className="truncate">{user.email}</span>
@@ -69,12 +75,12 @@ export default function UsersPage() {
                       {user.projectCount} projects
                     </p>
                   </div>
-                  <a
+                  <Link
                     href={`/users/${user.id}`}
                     className="rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:ring-0 dark:hover:bg-white/20"
                   >
                     View
-                  </a>
+                  </Link>
                 </div>
               </li>
             ))}

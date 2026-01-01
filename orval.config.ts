@@ -12,8 +12,12 @@ export default defineConfig({
       client: 'react-query',
       httpClient: 'fetch',
       mock: false,
-      baseUrl: 'http://localhost:5051',
+      baseUrl: '',
       override: {
+        mutator: {
+          path: 'src/lib/api/client.ts',
+          name: 'apiFetch',
+        },
         query: {
           useQuery: true,
           useSuspenseQuery: false,

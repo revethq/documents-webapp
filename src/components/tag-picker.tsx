@@ -236,7 +236,7 @@ export function TagPicker({
 
         {/* No results from filter */}
         {searchQuery && filteredTags.length === 0 && (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">No tags match "{searchQuery}"</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">No tags match &quot;{searchQuery}&quot;</p>
         )}
 
         {/* Create new tag */}

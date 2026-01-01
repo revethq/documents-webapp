@@ -1,13 +1,16 @@
 'use client'
 
+import { useRouter } from "next/navigation";
 import AppLayout from "@/components/app-layout";
 import PageHeader from "@/components/page-header";
 import EmptyState from "@/components/empty-state";
+import { Link } from "@/components/link";
 import { BuildingOfficeIcon } from "@heroicons/react/24/outline";
 import { useGetApiV1Organizations } from "@/lib/api/generated/organizations/organizations";
 import type { OrganizationDTO } from "@/lib/api/models";
 
 export default function OrganizationsPage() {
+  const router = useRouter();
   const { data: organizationsResponse, isLoading, error } = useGetApiV1Organizations();
 
   // Handle PageDTO or array response
@@ -21,7 +24,7 @@ export default function OrganizationsPage() {
         title="Organizations"
         description="A list of all organizations you have access to including their name, location, and member count."
         actionLabel="Add organization"
-        onAction={() => window.location.href = '/organizations/new'}
+        onAction={() => router.push('/organizations/new')}
       />
 
       {isLoading ? (
@@ -47,7 +50,7 @@ export default function OrganizationsPage() {
             title="No organizations"
             description="Get started by creating a new organization."
             actionLabel="New Organization"
-            onAction={() => window.location.href = '/organizations/new'}
+            onAction={() => router.push('/organizations/new')}
           />
         </div>
       ) : (
@@ -88,9 +91,9 @@ export default function OrganizationsPage() {
                           -
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                          <a href={`/organizations/${org.uuid}`} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                          <Link href={`/organizations/${org.uuid}`} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                             View<span className="sr-only">, {org.name}</span>
-                          </a>
+                          </Link>
                         </td>
                       </tr>
                     );

@@ -2,8 +2,7 @@
 
 import { useState, Fragment } from 'react';
 import { Combobox, ComboboxInput, ComboboxOptions, ComboboxOption } from '@headlessui/react';
-import { XMarkIcon, PencilIcon, CheckIcon } from '@heroicons/react/20/solid';
-import { Badge } from '@/components/badge';
+import { XMarkIcon, CheckIcon } from '@heroicons/react/20/solid';
 import clsx from 'clsx';
 
 export interface Tag {
