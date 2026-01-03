@@ -19,8 +19,8 @@ import {
   ArrowLeftIcon,
 } from '@heroicons/react/24/outline'
 import {
-  useGetApiV1DocumentsUuidUuid,
-  getGetApiV1DocumentsUuidUuidQueryKey,
+  useGetApiV1DocumentsUuid,
+  getGetApiV1DocumentsUuidQueryKey,
 } from '@/lib/api/generated/documents/documents'
 import { usePostApiV1FilesInitiateUpload } from '@/lib/api/generated/files/files'
 import {
@@ -60,7 +60,7 @@ export default function NewVersionPage() {
   const [isDragging, setIsDragging] = useState(false)
 
   // Fetch document details
-  const { data: document, isLoading, error: documentError } = useGetApiV1DocumentsUuidUuid(
+  const { data: document, isLoading, error: documentError } = useGetApiV1DocumentsUuid(
     documentUuid,
     { query: { enabled: !!documentUuid } }
   )
@@ -157,7 +157,7 @@ export default function NewVersionPage() {
 
       // Invalidate queries so document details page shows new version
       await queryClient.invalidateQueries({
-        queryKey: getGetApiV1DocumentsUuidUuidQueryKey(documentUuid),
+        queryKey: getGetApiV1DocumentsUuidQueryKey(documentUuid),
       })
       await queryClient.invalidateQueries({
         queryKey: getGetApiV1DocumentVersionsQueryKey(),

@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import AppLayout from "@/components/app-layout";
 import { Link } from "@/components/link";
-import { useGetApiV1OrganizationsUuidUuid, usePutApiV1OrganizationsId } from "@/lib/api/generated/organizations/organizations";
+import { Select } from "@/components/select";
+import { useGetApiV1OrganizationsUuid, usePutApiV1OrganizationsUuid } from "@/lib/api/generated/organizations/organizations";
 import { useGetApiV1Projects } from "@/lib/api/generated/projects/projects";
 import { useGetApiV1Buckets } from "@/lib/api/generated/buckets/buckets";
 import type { ProjectDTO, BucketDTO } from "@/lib/api/models";
@@ -31,7 +32,7 @@ export default function OrganizationDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>('projects');
 
   // Fetch organization details
-  const { data: orgData, isLoading: isLoadingOrg, error: orgError } = useGetApiV1OrganizationsUuidUuid(
+  const { data: orgData, isLoading: isLoadingOrg, error: orgError } = useGetApiV1OrganizationsUuid(
     orgUuid,
     {
       query: {
@@ -52,7 +53,7 @@ export default function OrganizationDetailPage() {
 
   // Fetch all buckets
   const { data: bucketsResponse, isLoading: isLoadingBuckets } = useGetApiV1Buckets();
-  const updateOrgMutation = usePutApiV1OrganizationsId();
+  const updateOrgMutation = usePutApiV1OrganizationsUuid();
 
   const buckets = useMemo(() => {
     if (!bucketsResponse) return [];
@@ -69,10 +70,10 @@ export default function OrganizationDetailPage() {
     : [];
 
   const handleSelectBucket = async (bucketId: number | null) => {
-    if (!organization?.id) return;
+    if (!organization?.uuid) return;
     try {
       await updateOrgMutation.mutateAsync({
-        id: organization.id,
+        uuid: organization.uuid,
         data: { bucketId },
       });
       // Invalidate all organization queries to refresh the data
@@ -301,13 +302,13 @@ export default function OrganizationDetailPage() {
                       <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                         Active Storage Bucket
                       </label>
-                      <select
+                      <Select
                         value={organization.bucketId ?? ''}
                         onChange={(e) => {
                           const value = e.target.value;
                           handleSelectBucket(value ? parseInt(value, 10) : null);
                         }}
-                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        className="w-full"
                       >
                         <option value="">No bucket configured</option>
                         {buckets.filter(b => b.isActive !== false).map((bucket) => (
@@ -315,7 +316,7 @@ export default function OrganizationDetailPage() {
                             {bucket.name} ({providerLabels[bucket.provider] || bucket.provider})
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       {!currentBucket ? (
                         <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
                           Document uploads and downloads are disabled until a storage bucket is configured.

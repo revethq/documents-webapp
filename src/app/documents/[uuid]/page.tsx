@@ -26,10 +26,10 @@ import {
   CheckIcon,
 } from '@heroicons/react/24/outline'
 import {
-  useGetApiV1DocumentsUuidUuid,
-  usePutApiV1DocumentsId,
-  useDeleteApiV1DocumentsId,
-  getGetApiV1DocumentsUuidUuidQueryKey,
+  useGetApiV1DocumentsUuid,
+  usePutApiV1DocumentsUuid,
+  useDeleteApiV1DocumentsUuid,
+  getGetApiV1DocumentsUuidQueryKey,
 } from '@/lib/api/generated/documents/documents'
 import {
   useGetApiV1DocumentVersions,
@@ -79,7 +79,7 @@ export default function DocumentDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Fetch document details
-  const { data: document, isLoading: isLoadingDocument, error: documentError } = useGetApiV1DocumentsUuidUuid(
+  const { data: document, isLoading: isLoadingDocument, error: documentError } = useGetApiV1DocumentsUuid(
     documentUuid,
     { query: { enabled: !!documentUuid } }
   )
@@ -106,8 +106,8 @@ export default function DocumentDetailPage() {
   )
 
   // Mutations
-  const updateDocument = usePutApiV1DocumentsId()
-  const deleteDocument = useDeleteApiV1DocumentsId()
+  const updateDocument = usePutApiV1DocumentsUuid()
+  const deleteDocument = useDeleteApiV1DocumentsUuid()
   const createTag = usePostApiV1Tags()
 
   // Parse projects
@@ -227,7 +227,7 @@ export default function DocumentDetailPage() {
     setIsSaving(true)
     try {
       await updateDocument.mutateAsync({
-        id: document.id,
+        uuid: document.uuid,
         data: {
           name: document.name,
           categoryId: editCategoryId,
@@ -235,7 +235,7 @@ export default function DocumentDetailPage() {
         },
       })
       // Invalidate the document query to refetch
-      queryClient.invalidateQueries({ queryKey: getGetApiV1DocumentsUuidUuidQueryKey(documentUuid) })
+      queryClient.invalidateQueries({ queryKey: getGetApiV1DocumentsUuidQueryKey(documentUuid) })
       setIsEditing(false)
     } catch (error) {
       setActionError(getErrorMessage(error, 'Update failed. Please try again.'))
@@ -262,7 +262,7 @@ export default function DocumentDetailPage() {
 
     setIsDeleting(true)
     try {
-      await deleteDocument.mutateAsync({ id: document.id })
+      await deleteDocument.mutateAsync({ uuid: document.uuid })
       router.push('/documents')
     } catch (error) {
       setActionError(getErrorMessage(error, 'Delete failed. Please try again.'))

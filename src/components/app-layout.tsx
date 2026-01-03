@@ -11,6 +11,7 @@ import {
   CircleStackIcon,
   DocumentDuplicateIcon,
   FolderIcon,
+  UsersIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
@@ -19,6 +20,7 @@ const navigation = [
   { name: 'Organizations', href: '/organizations', icon: BuildingOfficeIcon },
   { name: 'Projects', href: '/projects', icon: FolderIcon },
   { name: 'Storage', href: '/buckets', icon: CircleStackIcon },
+  { name: 'Users', href: '/users', icon: UsersIcon },
 ]
 
 

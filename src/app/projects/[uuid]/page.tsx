@@ -19,7 +19,7 @@ import {
   CheckIcon,
 } from '@heroicons/react/24/outline'
 import {
-  useGetApiV1ProjectsUuidUuid,
+  useGetApiV1ProjectsUuid,
 } from '@/lib/api/generated/projects/projects'
 import {
   useGetApiV1Categories,
@@ -55,7 +55,7 @@ export default function ProjectDetailPage() {
   const [isAddingCategory, setIsAddingCategory] = useState(false)
 
   // Fetch project details
-  const { data: project, isLoading: isLoadingProject, error: projectError } = useGetApiV1ProjectsUuidUuid(
+  const { data: project, isLoading: isLoadingProject, error: projectError } = useGetApiV1ProjectsUuid(
     projectUuid,
     { query: { enabled: !!projectUuid } }
   )
