@@ -38,7 +38,7 @@ export default function OrganizationsPage() {
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Error loading organizations</h3>
               <div className="mt-2 text-sm text-red-700 dark:text-red-300">
-                <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
+                <p>{(error as Error)?.message ?? 'An unknown error occurred'}</p>
               </div>
             </div>
           </div>

@@ -6,45 +6,44 @@ import AppLayout from '@/components/app-layout'
 import PageHeader from '@/components/page-header'
 import EmptyState from '@/components/empty-state'
 import { Link } from '@/components/link'
-import { UsersIcon } from '@heroicons/react/24/outline'
-import { useGetUsers } from '@/lib/api/generated/user-resource/user-resource'
-import type { UserResponse } from '@/lib/api/models'
+import { UserGroupIcon } from '@heroicons/react/24/outline'
+import { useGetGroups } from '@/lib/api/generated/group-resource/group-resource'
+import type { GroupResponse } from '@/lib/api/models'
 
-export default function UsersPage() {
+export default function GroupsPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: usersResponse, isLoading, error } = useGetUsers()
+  const { data: groupsResponse, isLoading, error } = useGetGroups()
 
-  const users = useMemo(() => {
-    if (!usersResponse) return []
-    if (Array.isArray(usersResponse)) return usersResponse
-    if ('content' in usersResponse) return (usersResponse as { content: UserResponse[] }).content
-    return [usersResponse]
-  }, [usersResponse])
+  const groups = useMemo(() => {
+    if (!groupsResponse) return []
+    if (Array.isArray(groupsResponse)) return groupsResponse
+    if ('content' in groupsResponse) return (groupsResponse as { content: GroupResponse[] }).content
+    return [groupsResponse]
+  }, [groupsResponse])
 
-  const filteredUsers = useMemo(() => {
+  const filteredGroups = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return users
-    return users.filter((user) => {
-      const values = [user.email, user.username]
-      return values.some((value) => value.toLowerCase().includes(query))
+    if (!query) return groups
+    return groups.filter((group) => {
+      return group.displayName.toLowerCase().includes(query)
     })
-  }, [users, searchQuery])
+  }, [groups, searchQuery])
 
   return (
     <AppLayout>
       <PageHeader
-        title="Users"
-        description="Manage user accounts, roles, and access."
-        actionLabel="Add user"
-        onAction={() => router.push('/users/new')}
+        title="Groups"
+        description="Manage groups and their members."
+        actionLabel="Add group"
+        onAction={() => router.push('/groups/new')}
       />
 
       <div className="mt-6">
         <input
           type="search"
-          placeholder="Search users..."
+          placeholder="Search groups..."
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           className="block w-full max-w-md rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
@@ -54,31 +53,31 @@ export default function UsersPage() {
       {isLoading ? (
         <div className="mt-8 text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent dark:border-indigo-400"></div>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading users...</p>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading groups...</p>
         </div>
       ) : error ? (
         <div className="mt-8 rounded-md bg-red-50 p-4 dark:bg-red-900/10">
           <div className="flex">
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Error loading users</h3>
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-400">Error loading groups</h3>
               <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                 <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
               </div>
             </div>
           </div>
         </div>
-      ) : filteredUsers.length === 0 ? (
+      ) : filteredGroups.length === 0 ? (
         <div className="mt-8">
           <EmptyState
-            icon={UsersIcon}
-            title={searchQuery ? 'No matching users' : 'No users'}
+            icon={UserGroupIcon}
+            title={searchQuery ? 'No matching groups' : 'No groups'}
             description={
               searchQuery
-                ? 'Try adjusting your search to find the user you need.'
-                : 'Invite your first user to get started.'
+                ? 'Try adjusting your search to find the group you need.'
+                : 'Create your first group to get started.'
             }
-            actionLabel="Add user"
-            onAction={() => router.push('/users/new')}
+            actionLabel="Add group"
+            onAction={() => router.push('/groups/new')}
           />
         </div>
       ) : (
@@ -92,13 +91,13 @@ export default function UsersPage() {
                       scope="col"
                       className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white sm:pl-0"
                     >
-                      Username
+                      Name
                     </th>
                     <th
                       scope="col"
                       className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white"
                     >
-                      Email
+                      Created
                     </th>
                     <th
                       scope="col"
@@ -109,17 +108,17 @@ export default function UsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                  {filteredUsers.map((user) => (
-                    <tr key={user.id}>
+                  {filteredGroups.map((group) => (
+                    <tr key={group.id}>
                       <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-white sm:pl-0">
-                        {user.username}
+                        {group.displayName}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
-                        {user.email}
+                        {group.createdOn ? new Date(group.createdOn).toLocaleDateString() : '-'}
                       </td>
                       <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
                         <Link
-                          href={`/users/${user.id}`}
+                          href={`/groups/${group.id}`}
                           className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                         >
                           View

@@ -11,6 +11,8 @@ import {
   CircleStackIcon,
   DocumentDuplicateIcon,
   FolderIcon,
+  ShieldCheckIcon,
+  UserGroupIcon,
   UsersIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
@@ -21,6 +23,8 @@ const navigation = [
   { name: 'Projects', href: '/projects', icon: FolderIcon },
   { name: 'Storage', href: '/buckets', icon: CircleStackIcon },
   { name: 'Users', href: '/users', icon: UsersIcon },
+  { name: 'Groups', href: '/groups', icon: UserGroupIcon },
+  { name: 'Policies', href: '/policies', icon: ShieldCheckIcon },
 ]
 
 
@@ -70,9 +74,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
               {/* Sidebar component, swap this element with another sidebar if you like */}
               <div className="relative flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-2 pt-6 dark:bg-gray-900 dark:ring dark:ring-white/10 dark:before:pointer-events-none dark:before:absolute dark:before:inset-0 dark:before:bg-black/10">
+                {/* User profile section at top */}
+                <div className="relative flex items-center gap-x-3 pb-4">
+                  <div className="size-12 shrink-0 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-white font-semibold text-lg">
+                    {displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      User
+                    </span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {displayName}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="relative border-t border-gray-200 dark:border-white/10" />
+
                 <nav className="relative flex flex-1 flex-col">
                   <ul role="list" className="flex flex-1 flex-col gap-y-7">
                     <li>
+                      <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                        Main
+                      </div>
                       <ul role="list" className="-mx-2 space-y-1">
                         {navigation.map((item) => (
                           <li key={item.name}>
@@ -111,45 +135,55 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col dark:bg-gray-900">
           {/* Sidebar component, swap this element with another sidebar if you like */}
           <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pt-6 dark:border-white/10 dark:bg-black/10">
+            {/* User profile section at top */}
+            <div className="flex items-center gap-x-3 pb-4">
+              <div className="size-12 shrink-0 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 flex items-center justify-center text-white font-semibold text-lg">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  User
+                </span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  {displayName}
+                </span>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-white/10" />
+
             <nav className="flex flex-1 flex-col">
               <ul role="list" className="flex flex-1 flex-col gap-y-7">
                 <li>
-                  <ul role="list" className="flex flex-1 flex-col gap-y-7">
-                    <li>
-                      <ul role="list" className="-mx-2 space-y-1">
-                        {navigation.map((item) => (
-                          <li key={item.name}>
-                            <Link
-                              href={item.href}
-                              className={classNames(
-                                isCurrentPath(pathname, item.href)
-                                  ? 'bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white'
-                                  : 'text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white',
-                                'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
-                              )}
-                            >
-                              <item.icon
-                                aria-hidden="true"
-                                className={classNames(
-                                  isCurrentPath(pathname, item.href)
-                                    ? 'text-indigo-600 dark:text-white'
-                                    : 'text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-white',
-                                  'size-6 shrink-0',
-                                )}
-                              />
-                              {item.name}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
-                  </ul>
-                </li>
-                <li className="-mx-6 mt-auto">
-                  <div className="flex items-center gap-x-3 px-6 py-3 text-sm/6 font-semibold text-gray-900 dark:text-white">
-                    <span className="sr-only">Signed in as</span>
-                    <span aria-hidden="true">{displayName}</span>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                    Main
                   </div>
+                  <ul role="list" className="-mx-2 space-y-1">
+                    {navigation.map((item) => (
+                      <li key={item.name}>
+                        <Link
+                          href={item.href}
+                          className={classNames(
+                            isCurrentPath(pathname, item.href)
+                              ? 'bg-gray-50 text-indigo-600 dark:bg-white/5 dark:text-white'
+                              : 'text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white',
+                            'group flex gap-x-3 rounded-md p-2 text-sm/6 font-semibold',
+                          )}
+                        >
+                          <item.icon
+                            aria-hidden="true"
+                            className={classNames(
+                              isCurrentPath(pathname, item.href)
+                                ? 'text-indigo-600 dark:text-white'
+                                : 'text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-white',
+                              'size-6 shrink-0',
+                            )}
+                          />
+                          {item.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               </ul>
             </nav>

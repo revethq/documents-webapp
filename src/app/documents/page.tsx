@@ -11,7 +11,7 @@ import { ErrorBanner } from "@/components/error-banner"
 import { Link } from "@/components/link"
 import { DocumentDuplicateIcon, ArrowUpTrayIcon, ArrowDownTrayIcon, MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline"
 import { getApiV1Documents, getGetApiV1DocumentsQueryKey, getGetApiV1DocumentsUuidDownloadQueryOptions } from '@/lib/api/generated/documents/documents'
-import type { ProjectDTO, CategoryDTO, PageDTO, TagDTO, OrganizationDTO } from '@/lib/api/models'
+import type { ProjectDTO, CategoryDTO, PageDTO, TagDTO, OrganizationDTO, DocumentDTO } from '@/lib/api/models'
 import { useGetApiV1Projects } from '@/lib/api/generated/projects/projects'
 import { useGetApiV1Categories } from '@/lib/api/generated/categories/categories'
 import { useGetApiV1Tags } from '@/lib/api/generated/tags/tags'
@@ -91,10 +91,10 @@ export default function DocumentsPage() {
   })
 
   // Flatten all pages into single array
-  const allDocuments = useMemo(() => {
+  const allDocuments = useMemo((): DocumentDTO[] => {
     return (
       data?.pages.flatMap(page =>
-        Array.isArray(page?.content) ? page.content : []
+        Array.isArray(page?.content) ? (page.content as DocumentDTO[]) : []
       ).filter(Boolean) ?? []
     )
   }, [data])

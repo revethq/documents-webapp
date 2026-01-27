@@ -3,7 +3,7 @@ import { defineConfig } from 'orval';
 export default defineConfig({
   kala: {
     input: {
-      target: 'http://localhost:5051/openapi?format=json',
+      target: './openapi.json',
     },
     output: {
       mode: 'tags-split',

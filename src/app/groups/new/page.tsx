@@ -10,42 +10,39 @@ import { Field, FieldGroup, Label, Description } from '@/components/fieldset'
 import { Heading, Subheading } from '@/components/heading'
 import { Text } from '@/components/text'
 import {
-  UserCircleIcon,
+  UserGroupIcon,
   CheckCircleIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  UserPlusIcon,
   CheckIcon as CheckIconOutline,
 } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
-import { usePostUsers, getGetUsersQueryKey } from '@/lib/api/generated/user-resource/user-resource'
-import type { CreateUserRequest } from '@/lib/api/models'
+import { usePostGroups, getGetGroupsQueryKey } from '@/lib/api/generated/group-resource/group-resource'
+import type { CreateGroupRequest } from '@/lib/api/models'
 
-interface UserFormData {
-  username: string
-  email: string
+interface GroupFormData {
+  displayName: string
 }
 
-const initialFormData: UserFormData = {
-  username: '',
-  email: '',
+const initialFormData: GroupFormData = {
+  displayName: '',
 }
 
-type Step = 'account' | 'confirm'
+type Step = 'details' | 'confirm'
 
-const STEPS: { id: Step; name: string; icon: typeof UserCircleIcon }[] = [
-  { id: 'account', name: 'Account', icon: UserCircleIcon },
+const STEPS: { id: Step; name: string; icon: typeof UserGroupIcon }[] = [
+  { id: 'details', name: 'Details', icon: UserGroupIcon },
   { id: 'confirm', name: 'Confirm', icon: CheckIconOutline },
 ]
 
-export default function NewUserPage() {
+export default function NewGroupPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const createMutation = usePostUsers()
+  const createMutation = usePostGroups()
 
-  const [formData, setFormData] = useState<UserFormData>(initialFormData)
+  const [formData, setFormData] = useState<GroupFormData>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [currentStep, setCurrentStep] = useState<Step>('account')
+  const [currentStep, setCurrentStep] = useState<Step>('details')
   const [createError, setCreateError] = useState<string | null>(null)
   const [createSuccess, setCreateSuccess] = useState(false)
 
@@ -53,8 +50,8 @@ export default function NewUserPage() {
 
   const canGoNext = () => {
     switch (currentStep) {
-      case 'account':
-        return formData.username.trim() !== '' && formData.email.trim() !== ''
+      case 'details':
+        return formData.displayName.trim() !== ''
       case 'confirm':
         return false
       default:
@@ -81,21 +78,20 @@ export default function NewUserPage() {
     setCreateError(null)
 
     try {
-      const payload: CreateUserRequest = {
-        username: formData.username.trim(),
-        email: formData.email.trim(),
+      const payload: CreateGroupRequest = {
+        displayName: formData.displayName.trim(),
       }
 
       await createMutation.mutateAsync({ data: payload })
-      await queryClient.invalidateQueries({ queryKey: getGetUsersQueryKey() })
+      await queryClient.invalidateQueries({ queryKey: getGetGroupsQueryKey() })
       setCreateSuccess(true)
 
       setTimeout(() => {
-        router.push('/users')
+        router.push('/groups')
       }, 1500)
     } catch (submitError) {
-      console.error('Failed to create user:', submitError)
-      setCreateError('Failed to create user. Please try again.')
+      console.error('Failed to create group:', submitError)
+      setCreateError('Failed to create group. Please try again.')
       setIsSubmitting(false)
     }
   }
@@ -104,8 +100,8 @@ export default function NewUserPage() {
     <AppLayout>
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
-          <Heading>Create New User</Heading>
-          <Text className="mt-2">Set up a new user account in two steps.</Text>
+          <Heading>Create New Group</Heading>
+          <Text className="mt-2">Set up a new group in two steps.</Text>
         </div>
 
         <nav aria-label="Progress" className="mb-8">
@@ -157,31 +153,20 @@ export default function NewUserPage() {
         </nav>
 
         <div className="mt-12 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-800/50">
-          {currentStep === 'account' && (
+          {currentStep === 'details' && (
             <div>
-              <Subheading>Account Basics</Subheading>
-              <Text className="mt-1">Provide the username and email for the new user.</Text>
+              <Subheading>Group Details</Subheading>
+              <Text className="mt-1">Provide the name for the new group.</Text>
 
               <div className="mt-6">
                 <FieldGroup>
                   <Field>
-                    <Label>Username <span className="text-red-500">*</span></Label>
-                    <Description>Used for sign-in and internal references.</Description>
+                    <Label>Display Name <span className="text-red-500">*</span></Label>
+                    <Description>A descriptive name for this group.</Description>
                     <Input
-                      value={formData.username}
-                      onChange={(event) => setFormData({ ...formData, username: event.target.value })}
-                      placeholder="jane.doe"
-                      required
-                    />
-                  </Field>
-                  <Field>
-                    <Label>Email <span className="text-red-500">*</span></Label>
-                    <Description>Primary email address for this user.</Description>
-                    <Input
-                      type="email"
-                      value={formData.email}
-                      onChange={(event) => setFormData({ ...formData, email: event.target.value })}
-                      placeholder="jane@example.com"
+                      value={formData.displayName}
+                      onChange={(event) => setFormData({ ...formData, displayName: event.target.value })}
+                      placeholder="Engineering Team"
                       required
                     />
                   </Field>
@@ -196,29 +181,23 @@ export default function NewUserPage() {
                 <div className="py-8 text-center">
                   <CheckCircleIcon className="mx-auto size-16 text-green-500" />
                   <p className="mt-4 text-lg font-medium text-green-700 dark:text-green-400">
-                    User Created!
+                    Group Created!
                   </p>
                   <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    Redirecting to users list...
+                    Redirecting to groups list...
                   </p>
                 </div>
               ) : (
                 <>
                   <Subheading>Review & Create</Subheading>
-                  <Text className="mt-1">Please review the user details before creating.</Text>
+                  <Text className="mt-1">Please review the group details before creating.</Text>
 
                   <div className="mt-6 rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
                     <dl className="divide-y divide-zinc-200 dark:divide-zinc-700">
                       <div className="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                        <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Username</dt>
+                        <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Display Name</dt>
                         <dd className="mt-1 text-sm text-zinc-900 dark:text-white sm:col-span-2 sm:mt-0">
-                          {formData.username}
-                        </dd>
-                      </div>
-                      <div className="px-4 py-4 sm:grid sm:grid-cols-3 sm:gap-4">
-                        <dt className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Email</dt>
-                        <dd className="mt-1 text-sm text-zinc-900 dark:text-white sm:col-span-2 sm:mt-0">
-                          {formData.email}
+                          {formData.displayName}
                         </dd>
                       </div>
                     </dl>
@@ -236,8 +215,8 @@ export default function NewUserPage() {
                       disabled={isSubmitting}
                       className="w-full"
                     >
-                      <UserPlusIcon className="size-5" />
-                      {isSubmitting ? 'Creating User...' : 'Create User'}
+                      <UserGroupIcon className="size-5" />
+                      {isSubmitting ? 'Creating Group...' : 'Create Group'}
                     </Button>
                   </div>
                 </>
@@ -250,7 +229,7 @@ export default function NewUserPage() {
           <div className="mt-6 flex justify-between">
             <Button
               outline
-              onClick={currentStepIndex === 0 ? () => router.push('/users') : goBack}
+              onClick={currentStepIndex === 0 ? () => router.push('/groups') : goBack}
             >
               <ArrowLeftIcon className="size-4" />
               {currentStepIndex === 0 ? 'Cancel' : 'Back'}
