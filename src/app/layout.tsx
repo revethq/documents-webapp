@@ -1,3 +1,4 @@
+import Script from "next/script";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/providers/auth-provider";
@@ -26,6 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full bg-white dark:bg-gray-900">
+      <Script src="/__config.js" strategy="beforeInteractive" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >

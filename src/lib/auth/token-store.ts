@@ -1,6 +1,6 @@
+import { getEnv } from '@/lib/env'
+
 let accessToken: string | null = null
-const authority = process.env.NEXT_PUBLIC_OIDC_AUTHORITY ?? ''
-const clientId = process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? ''
 
 export function setAccessToken(token: string | null) {
   accessToken = token
@@ -13,6 +13,8 @@ export function getAccessToken(): string | null {
 export function getAccessTokenFromStorage(): string | null {
   if (typeof window === 'undefined') return null
 
+  const authority = getEnv('OIDC_AUTHORIZATION_SERVER_URI')
+  const clientId = getEnv('OIDC_CLIENT_ID')
   const storageKey = `oidc.user:${authority}:${clientId}`
   const stored =
     window.sessionStorage.getItem(storageKey) ??

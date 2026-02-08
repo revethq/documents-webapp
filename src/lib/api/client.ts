@@ -1,9 +1,9 @@
 import { getAccessToken, getAccessTokenFromStorage, setAccessToken } from '@/lib/auth/token-store'
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
+import { getEnv } from '@/lib/env'
 
 function buildUrl(input: string): string {
-  if (!API_BASE_URL) {
+  const apiBaseUrl = getEnv('API_URL')
+  if (!apiBaseUrl) {
     return input
   }
 
@@ -11,7 +11,7 @@ function buildUrl(input: string): string {
     return input
   }
 
-  const normalizedBase = API_BASE_URL.replace(/\/$/, '')
+  const normalizedBase = apiBaseUrl.replace(/\/$/, '')
   const normalizedInput = input.startsWith('/') ? input : `/${input}`
   return `${normalizedBase}${normalizedInput}`
 }

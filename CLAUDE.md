@@ -21,7 +21,7 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 ## Project Overview
 
-**Project Name:** kala-webapp
+**Project Name:** revet-documents-webapp
 **Version:** 0.1.0
 **Type:** Next.js Web Application (Frontend)
 **Backend:** Django Kala App (Document Management System)
@@ -83,7 +83,7 @@ This Next.js app will provide:
 ## Project Structure
 
 ```
-kala-webapp/
+revet-documents-webapp/
 ├── src/
 │   ├── app/              # Next.js App Router pages
 │   │   ├── layout.tsx    # Root layout with full-height styling

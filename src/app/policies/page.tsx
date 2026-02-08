@@ -2,27 +2,19 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
 import PageHeader from '@/components/page-header'
 import EmptyState from '@/components/empty-state'
 import { Link } from '@/components/link'
-import { ShieldCheckIcon, TrashIcon } from '@heroicons/react/24/outline'
-import {
-  useGetPolicies,
-  useDeletePoliciesId,
-  getGetPoliciesQueryKey,
-} from '@/lib/api/generated/policy-resource/policy-resource'
+import { ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { useGetPolicies } from '@/lib/api/generated/policy-resource/policy-resource'
 import type { PolicyResponse } from '@/lib/api/models'
 
 export default function PoliciesPage() {
   const router = useRouter()
-  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState('')
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const { data: policiesResponse, isLoading, error } = useGetPolicies()
-  const deleteMutation = useDeletePoliciesId()
 
   const policies = useMemo(() => {
     if (!policiesResponse) return []
@@ -43,16 +35,6 @@ export default function PoliciesPage() {
       )
     })
   }, [policies, searchQuery])
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteMutation.mutateAsync({ id })
-      await queryClient.invalidateQueries({ queryKey: getGetPoliciesQueryKey() })
-      setDeleteConfirmId(null)
-    } catch (err) {
-      console.error('Failed to delete policy:', err)
-    }
-  }
 
   return (
     <AppLayout>
@@ -140,11 +122,8 @@ export default function PoliciesPage() {
                     >
                       Created
                     </th>
-                    <th
-                      scope="col"
-                      className="relative py-3.5 pl-3 pr-4 text-right text-sm font-semibold text-gray-900 dark:text-white sm:pr-0"
-                    >
-                      Actions
+                    <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-0">
+                      <span className="sr-only">View</span>
                     </th>
                   </tr>
                 </thead>
@@ -167,37 +146,12 @@ export default function PoliciesPage() {
                         {policy.createdOn ? new Date(policy.createdOn).toLocaleDateString() : '-'}
                       </td>
                       <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-0">
-                        <div className="flex items-center justify-end gap-3">
-                          <Link
-                            href={`/policies/${policy.id}`}
-                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                          >
-                            Edit
-                          </Link>
-                          {deleteConfirmId === policy.id ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleDelete(policy.id)}
-                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                              >
-                                Confirm
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirmId(null)}
-                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setDeleteConfirmId(policy.id)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                            >
-                              <TrashIcon className="size-4" />
-                            </button>
-                          )}
-                        </div>
+                        <Link
+                          href={`/policies/${policy.id}`}
+                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                        >
+                          View<span className="sr-only">, {policy.name}</span>
+                        </Link>
                       </td>
                     </tr>
                   ))}

@@ -2,6 +2,7 @@
 
 import { TrashIcon } from '@heroicons/react/24/outline'
 import { ActionPicker } from './action-picker'
+import { ResourcePicker } from './resource-picker'
 import type { StatementDto } from '@/lib/api/models'
 
 interface StatementCardProps {
@@ -21,11 +22,7 @@ export function StatementCard({ statement, index, onChange, onRemove, disabled }
     onChange({ ...statement, actions })
   }
 
-  const handleResourcesChange = (value: string) => {
-    const resources = value
-      .split('\n')
-      .map(r => r.trim())
-      .filter(Boolean)
+  const handleResourcesChange = (resources: string[]) => {
     onChange({ ...statement, resources })
   }
 
@@ -114,20 +111,14 @@ export function StatementCard({ statement, index, onChange, onRemove, disabled }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Resources (one per line)
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Resources
           </label>
-          <textarea
-            value={statement.resources.join('\n')}
-            onChange={(e) => handleResourcesChange(e.target.value)}
+          <ResourcePicker
+            selectedResources={statement.resources}
+            onChange={handleResourcesChange}
             disabled={disabled}
-            rows={3}
-            placeholder="*&#10;urn:organization:123&#10;urn:project:456"
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-800"
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Use * for all resources, or specify URNs like urn:organization:uuid
-          </p>
         </div>
 
         {hasConditions && (
