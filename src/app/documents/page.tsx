@@ -21,6 +21,7 @@ import { Select } from '@/components/select'
 import { Badge } from '@/components/badge'
 import { TagPicker } from '@/components/tag-picker'
 import { getErrorMessage } from '@/lib/errors'
+import RequireCapability from '@/components/require-capability'
 
 const PAGE_SIZE = 50
 
@@ -135,46 +136,48 @@ export default function DocumentsPage() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   // Fetch projects for filter dropdown
-  const { data: projectsResponse, error: projectsError } = useGetApiV1Projects()
+  const { data: projectsResponse, error: projectsError } = useGetApiV1Projects({ includeInactive: false })
 
   // Fetch categories, filtered by project if selected
   const { data: categoriesResponse, error: categoriesError } = useGetApiV1Categories(
     selectedProjectId !== null ? { projectId: selectedProjectId } : undefined
   )
 
-  // Fetch all available tags from API
-  const { data: tagsResponse, error: tagsError } = useGetApiV1Tags()
-
   // Fetch organizations to check bucket configuration
-  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations()
+  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations({ includeInactive: false })
 
   const projects = useMemo(() => {
-    if (!projectsResponse) return []
-    if (Array.isArray(projectsResponse)) return projectsResponse
-    if ('content' in projectsResponse) return projectsResponse.content as ProjectDTO[]
-    return [projectsResponse]
+    return projectsResponse ?? []
   }, [projectsResponse])
 
   const categories = useMemo(() => {
     if (!categoriesResponse) return []
-    if (Array.isArray(categoriesResponse)) return categoriesResponse
-    if ('content' in categoriesResponse) return categoriesResponse.content as CategoryDTO[]
-    return [categoriesResponse]
+    return Array.isArray(categoriesResponse) ? categoriesResponse : [categoriesResponse]
   }, [categoriesResponse])
 
   const organizations = useMemo(() => {
-    if (!organizationsResponse) return []
-    if (Array.isArray(organizationsResponse)) return organizationsResponse
-    if ('content' in organizationsResponse) return organizationsResponse.content as OrganizationDTO[]
-    return [organizationsResponse]
+    return organizationsResponse ?? []
   }, [organizationsResponse])
+
+  // Derive the numeric organization ID for the tags query
+  const selectedOrganizationId = useMemo(() => {
+    if (selectedOrganizationUuid) {
+      return organizations.find(o => o.uuid === selectedOrganizationUuid)?.id ?? null
+    }
+    // Default to first organization when none is selected
+    return organizations[0]?.id ?? null
+  }, [selectedOrganizationUuid, organizations])
+
+  // Fetch tags scoped to the selected (or first) organization
+  const { data: tagsResponse, error: tagsError } = useGetApiV1Tags(
+    { organizationId: selectedOrganizationId ?? 0 },
+    { query: { enabled: selectedOrganizationId !== null } }
+  )
 
   // Get tags from API
   const availableTags = useMemo((): TagDTO[] => {
     if (!tagsResponse) return []
-    if (Array.isArray(tagsResponse)) return tagsResponse
-    if ('content' in tagsResponse) return tagsResponse.content as TagDTO[]
-    return [tagsResponse]
+    return Array.isArray(tagsResponse) ? tagsResponse : [tagsResponse]
   }, [tagsResponse])
 
   // Get tag name by slug for display (used for document tags)
@@ -260,6 +263,7 @@ export default function DocumentsPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-documents">
       <PageHeader
         title="Documents"
         description="Search, browse, and manage all your accessible documents."
@@ -601,6 +605,7 @@ export default function DocumentsPage() {
         </div>
       )}
 
+    </RequireCapability>
     </AppLayout>
   )
 }

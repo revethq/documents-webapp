@@ -23,14 +23,31 @@ declare global {
 }
 
 /**
+ * Build-time fallback values from NEXT_PUBLIC_* env vars.
+ * Next.js requires literal `process.env.NEXT_PUBLIC_X` references
+ * to inline them at compile time — dynamic lookups don't work.
+ *
+ * In production, __config.js is injected by the container entrypoint.
+ * In local dev, values fall back to NEXT_PUBLIC_* from .env.local.
+ */
+const BUILD_TIME_ENV: RuntimeEnv = {
+  API_URL: process.env.NEXT_PUBLIC_API_URL ?? '',
+  OIDC_AUTHORIZATION_SERVER_URI: process.env.NEXT_PUBLIC_OIDC_AUTHORIZATION_SERVER_URI ?? '',
+  OIDC_CLIENT_ID: process.env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? '',
+  OIDC_REDIRECT_URI: process.env.NEXT_PUBLIC_OIDC_REDIRECT_URI ?? '',
+  OIDC_SCOPE: process.env.NEXT_PUBLIC_OIDC_SCOPE ?? '',
+};
+
+/**
  * Get a runtime environment value.
- * Returns empty string if running on server or value is not set.
+ *
+ * Priority: window.__ENV__ (runtime injection) > NEXT_PUBLIC_* (build-time)
  */
 export function getEnv<K extends keyof RuntimeEnv>(key: K): string {
   if (typeof window === 'undefined') {
     return '';
   }
-  return window.__ENV__?.[key] ?? '';
+  return window.__ENV__?.[key] || BUILD_TIME_ENV[key] || '';
 }
 
 /**

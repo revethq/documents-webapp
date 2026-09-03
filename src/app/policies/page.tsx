@@ -7,22 +7,19 @@ import PageHeader from '@/components/page-header'
 import EmptyState from '@/components/empty-state'
 import { Link } from '@/components/link'
 import { ShieldCheckIcon } from '@heroicons/react/24/outline'
-import { useGetPolicies } from '@/lib/api/generated/policy-resource/policy-resource'
-import type { PolicyResponse } from '@/lib/api/models'
+import { useGetApiV1Policies } from '@/lib/api/generated/policy-resource/policy-resource'
+import type { PolicyResponse, GetPoliciesParams } from '@/lib/api/models'
+
 
 export default function PoliciesPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: policiesResponse, isLoading, error } = useGetPolicies()
+  const { data: policiesResponse, isLoading, error } = useGetApiV1Policies({ startIndex: 0 } as GetPoliciesParams)
 
   const policies = useMemo(() => {
     if (!policiesResponse) return []
-    if (Array.isArray(policiesResponse)) return policiesResponse
-    if ('items' in policiesResponse) return (policiesResponse as { items: PolicyResponse[] }).items
-    if ('content' in policiesResponse) return (policiesResponse as { content: PolicyResponse[] }).content
-    if ('policies' in policiesResponse) return (policiesResponse as { policies: PolicyResponse[] }).policies
-    return [policiesResponse]
+    return policiesResponse.items ?? []
   }, [policiesResponse])
 
   const filteredPolicies = useMemo(() => {

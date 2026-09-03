@@ -8,18 +8,17 @@ import { Link } from "@/components/link";
 import { BuildingOfficeIcon } from "@heroicons/react/24/outline";
 import { useGetApiV1Organizations } from "@/lib/api/generated/organizations/organizations";
 import type { OrganizationDTO } from "@/lib/api/models";
+import RequireCapability from "@/components/require-capability";
 
 export default function OrganizationsPage() {
   const router = useRouter();
-  const { data: organizationsResponse, isLoading, error } = useGetApiV1Organizations();
+  const { data: organizationsResponse, isLoading, error } = useGetApiV1Organizations({ includeInactive: false });
 
-  // Handle PageDTO or array response
-  const organizations: OrganizationDTO[] = organizationsResponse
-    ? (Array.isArray(organizationsResponse) ? organizationsResponse : ('content' in organizationsResponse ? organizationsResponse.content as OrganizationDTO[] : [organizationsResponse]))
-    : [];
+  const organizations: OrganizationDTO[] = organizationsResponse ?? [];
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-organizations">
       <PageHeader
         title="Organizations"
         description="A list of all organizations you have access to including their name, location, and member count."
@@ -104,6 +103,7 @@ export default function OrganizationsPage() {
           </div>
         </div>
       )}
+    </RequireCapability>
     </AppLayout>
   );
 }

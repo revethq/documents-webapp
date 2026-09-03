@@ -11,28 +11,20 @@ import { useGetApiV1Projects } from "@/lib/api/generated/projects/projects";
 import { useGetApiV1Organizations } from "@/lib/api/generated/organizations/organizations";
 import type { ProjectDTO } from "@/lib/api/models/projectDTO";
 import type { OrganizationDTO } from "@/lib/api/models/organizationDTO";
+import RequireCapability from "@/components/require-capability";
 
 export default function ProjectsPage() {
   const router = useRouter();
-  const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useGetApiV1Projects();
-  const { data: orgsResponse, isLoading: orgsLoading } = useGetApiV1Organizations();
-
-  const normalizeList = <T,>(response: unknown): T[] => {
-    if (!response) return [];
-    if (Array.isArray(response)) return response as T[];
-    if (typeof response === 'object' && response && 'content' in response) {
-      return (response as { content: T[] }).content ?? [];
-    }
-    return [response as T];
-  };
+  const { data: projectsResponse, isLoading: projectsLoading, error: projectsError } = useGetApiV1Projects({ includeInactive: false });
+  const { data: orgsResponse, isLoading: orgsLoading } = useGetApiV1Organizations({ includeInactive: false });
 
   const projects = useMemo(
-    () => normalizeList<ProjectDTO>(projectsResponse),
+    () => projectsResponse ?? [],
     [projectsResponse]
   );
 
   const organizations = useMemo(
-    () => normalizeList<OrganizationDTO>(orgsResponse),
+    () => orgsResponse ?? [],
     [orgsResponse]
   );
 
@@ -67,6 +59,7 @@ export default function ProjectsPage() {
   if (isLoading) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-projects">
         <PageHeader
           title="Projects"
           description="Browse and manage all projects across your organizations."
@@ -74,6 +67,7 @@ export default function ProjectsPage() {
         <div className="mt-8 flex items-center justify-center">
           <div className="text-gray-500 dark:text-gray-400">Loading projects...</div>
         </div>
+        </RequireCapability>
       </AppLayout>
     );
   }
@@ -81,6 +75,7 @@ export default function ProjectsPage() {
   if (projectsError) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-projects">
         <PageHeader
           title="Projects"
           description="Browse and manage all projects across your organizations."
@@ -88,12 +83,14 @@ export default function ProjectsPage() {
         <div className="mt-8 flex items-center justify-center">
           <div className="text-red-500">Failed to load projects. Please try again.</div>
         </div>
+        </RequireCapability>
       </AppLayout>
     );
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-projects">
       <PageHeader
         title="Projects"
         description="Browse and manage all projects across your organizations."
@@ -167,6 +164,7 @@ export default function ProjectsPage() {
           })}
         </div>
       )}
+    </RequireCapability>
     </AppLayout>
   );
 }

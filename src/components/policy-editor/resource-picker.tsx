@@ -8,8 +8,8 @@ import { useGetApiV1Documents } from '@/lib/api/generated/documents/documents'
 import { useGetApiV1Organizations } from '@/lib/api/generated/organizations/organizations'
 import { useGetApiV1Projects } from '@/lib/api/generated/projects/projects'
 import { useGetApiV1Buckets } from '@/lib/api/generated/buckets/buckets'
-import { useGetUsers } from '@/lib/api/generated/user-resource/user-resource'
-import { useGetGroups } from '@/lib/api/generated/group-resource/group-resource'
+import { useGetApiV1Users } from '@/lib/api/generated/user-resource/user-resource'
+import { useGetApiV1Groups } from '@/lib/api/generated/group-resource/group-resource'
 
 interface ResourcePickerProps {
   selectedResources: string[]
@@ -31,19 +31,19 @@ export function ResourcePicker({ selectedResources, onChange, disabled }: Resour
   const { data: documentsData } = useGetApiV1Documents(undefined, {
     query: { enabled: selectedType === 'document' },
   })
-  const { data: organizationsData } = useGetApiV1Organizations(undefined, {
+  const { data: organizationsData } = useGetApiV1Organizations({ includeInactive: false }, {
     query: { enabled: selectedType === 'organization' },
   })
-  const { data: projectsData } = useGetApiV1Projects(undefined, {
+  const { data: projectsData } = useGetApiV1Projects({ includeInactive: false }, {
     query: { enabled: selectedType === 'project' },
   })
-  const { data: bucketsData } = useGetApiV1Buckets(undefined, {
+  const { data: bucketsData } = useGetApiV1Buckets({ includeInactive: false }, {
     query: { enabled: selectedType === 'bucket' },
   })
-  const { data: usersData } = useGetUsers(undefined, {
+  const { data: usersData } = useGetApiV1Users({ page: 0 }, {
     query: { enabled: selectedType === 'user' },
   })
-  const { data: groupsData } = useGetGroups(undefined, {
+  const { data: groupsData } = useGetApiV1Groups({ page: 0 }, {
     query: { enabled: selectedType === 'group' },
   })
 
@@ -63,8 +63,11 @@ export function ResourcePicker({ selectedResources, onChange, disabled }: Resour
       if (Array.isArray(data)) {
         items = data
       } else if (typeof data === 'object' && data !== null) {
-        if ('content' in data) items = (data as { content: T[] }).content
-        else if ('items' in data) items = (data as { items: T[] }).items
+        if ('content' in data && Array.isArray((data as Record<string, unknown>).content)) {
+          items = (data as Record<string, unknown>).content as T[]
+        } else if ('items' in data && Array.isArray((data as Record<string, unknown>).items)) {
+          items = (data as Record<string, unknown>).items as T[]
+        }
       }
 
       return items.map(item => {

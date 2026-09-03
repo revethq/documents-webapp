@@ -7,20 +7,19 @@ import PageHeader from '@/components/page-header'
 import EmptyState from '@/components/empty-state'
 import { Link } from '@/components/link'
 import { UsersIcon } from '@heroicons/react/24/outline'
-import { useGetUsers } from '@/lib/api/generated/user-resource/user-resource'
+import { useGetApiV1Users } from '@/lib/api/generated/user-resource/user-resource'
 import type { UserResponse } from '@/lib/api/models'
+import RequireCapability from '@/components/require-capability'
 
 export default function UsersPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: usersResponse, isLoading, error } = useGetUsers()
+  const { data: usersResponse, isLoading, error } = useGetApiV1Users({ page: 0 })
 
   const users = useMemo(() => {
     if (!usersResponse) return []
-    if (Array.isArray(usersResponse)) return usersResponse
-    if ('content' in usersResponse) return (usersResponse as { content: UserResponse[] }).content
-    return [usersResponse]
+    return usersResponse.content ?? []
   }, [usersResponse])
 
   const filteredUsers = useMemo(() => {
@@ -34,6 +33,7 @@ export default function UsersPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-users">
       <PageHeader
         title="Users"
         description="Manage user accounts, roles, and access."
@@ -133,6 +133,7 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+    </RequireCapability>
     </AppLayout>
   )
 }

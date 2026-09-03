@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from "@/components/app-layout"
+import RequireCapability from '@/components/require-capability'
 import { Badge } from '@/components/badge'
 import { Input } from '@/components/input'
 import { Button } from '@/components/button'
@@ -31,7 +32,7 @@ import {
 import { useGetApiV1Documents } from '@/lib/api/generated/documents/documents'
 import { useGetApiV1Organizations } from '@/lib/api/generated/organizations/organizations'
 import { useGetApiV1Tags } from '@/lib/api/generated/tags/tags'
-import type { DocumentDTO, CategoryDTO, OrganizationDTO, TagDTO } from '@/lib/api/models'
+import type { DocumentDTO, CategoryDTO, OrganizationDTO, TagDTO, ProjectDTO } from '@/lib/api/models'
 
 type TabType = 'overview' | 'documents' | 'categories' | 'settings'
 
@@ -55,10 +56,11 @@ export default function ProjectDetailPage() {
   const [isAddingCategory, setIsAddingCategory] = useState(false)
 
   // Fetch project details
-  const { data: project, isLoading: isLoadingProject, error: projectError } = useGetApiV1ProjectsUuid(
+  const { data: projectData, isLoading: isLoadingProject, error: projectError } = useGetApiV1ProjectsUuid(
     projectUuid,
     { query: { enabled: !!projectUuid } }
   )
+  const project = projectData as ProjectDTO | undefined
 
   // Fetch categories for this project
   const { data: categoriesResponse, isLoading: isLoadingCategories } = useGetApiV1Categories(
@@ -73,10 +75,13 @@ export default function ProjectDetailPage() {
   )
 
   // Fetch organizations for display
-  const { data: orgsResponse } = useGetApiV1Organizations()
+  const { data: orgsResponse } = useGetApiV1Organizations({ includeInactive: false })
 
   // Fetch tags for display
-  const { data: tagsResponse } = useGetApiV1Tags()
+  const { data: tagsResponse } = useGetApiV1Tags(
+    { organizationId: project?.organizationId ?? 0 },
+    { query: { enabled: !!project?.organizationId } }
+  )
 
   // Mutations
   const createCategoryMutation = usePostApiV1Categories()
@@ -86,30 +91,21 @@ export default function ProjectDetailPage() {
   // Parse responses
   const categories: CategoryDTO[] = useMemo(() => {
     if (!categoriesResponse) return []
-    if (Array.isArray(categoriesResponse)) return categoriesResponse
-    if ('content' in categoriesResponse) return (categoriesResponse as { content: CategoryDTO[] }).content
-    return [categoriesResponse]
+    return Array.isArray(categoriesResponse) ? categoriesResponse : [categoriesResponse]
   }, [categoriesResponse])
 
   const documents: DocumentDTO[] = useMemo(() => {
     if (!documentsResponse) return []
-    if (Array.isArray(documentsResponse)) return documentsResponse
-    if ('content' in documentsResponse) return (documentsResponse as { content: DocumentDTO[] }).content
-    return [documentsResponse]
+    return (documentsResponse.content ?? []) as DocumentDTO[]
   }, [documentsResponse])
 
   const organizations: OrganizationDTO[] = useMemo(() => {
-    if (!orgsResponse) return []
-    if (Array.isArray(orgsResponse)) return orgsResponse
-    if ('content' in orgsResponse) return (orgsResponse as { content: OrganizationDTO[] }).content
-    return [orgsResponse]
+    return orgsResponse ?? []
   }, [orgsResponse])
 
   const allTags: TagDTO[] = useMemo(() => {
     if (!tagsResponse) return []
-    if (Array.isArray(tagsResponse)) return tagsResponse
-    if ('content' in tagsResponse) return (tagsResponse as { content: TagDTO[] }).content
-    return [tagsResponse]
+    return Array.isArray(tagsResponse) ? tagsResponse : [tagsResponse]
   }, [tagsResponse])
 
   const organization = organizations.find(o => o.id === project?.organizationId)
@@ -172,9 +168,11 @@ export default function ProjectDetailPage() {
   if (isLoadingProject) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-projects">
         <div className="flex items-center justify-center h-64">
           <div className="size-8 animate-spin rounded-full border-4 border-zinc-300 border-t-indigo-600 dark:border-zinc-600 dark:border-t-indigo-400" />
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
@@ -182,17 +180,20 @@ export default function ProjectDetailPage() {
   if (projectError || !project) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-projects">
         <div className="flex items-center justify-center h-64">
           <div className="text-red-600 dark:text-red-400">
             Failed to load project. Please try again.
           </div>
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-projects">
       <div className="max-w-7xl">
         {/* Header */}
         <div className="mb-6">
@@ -607,6 +608,7 @@ export default function ProjectDetailPage() {
           )}
         </div>
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

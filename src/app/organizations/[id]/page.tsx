@@ -4,12 +4,13 @@ import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import AppLayout from "@/components/app-layout";
+import RequireCapability from '@/components/require-capability';
 import { Link } from "@/components/link";
 import { Select } from "@/components/select";
 import { useGetApiV1OrganizationsUuid, usePutApiV1OrganizationsUuid } from "@/lib/api/generated/organizations/organizations";
 import { useGetApiV1Projects } from "@/lib/api/generated/projects/projects";
 import { useGetApiV1Buckets } from "@/lib/api/generated/buckets/buckets";
-import type { ProjectDTO, BucketDTO } from "@/lib/api/models";
+import type { ProjectDTO, BucketDTO, OrganizationDTO } from "@/lib/api/models";
 
 type TabType = 'projects' | 'storage' | 'settings' | 'users';
 
@@ -43,31 +44,25 @@ export default function OrganizationDetailPage() {
 
   // Fetch projects for this organization
   const { data: projectsData, isLoading: isLoadingProjects } = useGetApiV1Projects(
-    { organizationId: orgData?.id },
+    { includeInactive: false, organizationId: (orgData as OrganizationDTO | undefined)?.id },
     {
       query: {
-        enabled: !!orgData?.id,
+        enabled: !!(orgData as OrganizationDTO | undefined)?.id,
       },
     }
   );
 
   // Fetch all buckets
-  const { data: bucketsResponse, isLoading: isLoadingBuckets } = useGetApiV1Buckets();
+  const { data: bucketsResponse, isLoading: isLoadingBuckets } = useGetApiV1Buckets({ includeInactive: false });
   const updateOrgMutation = usePutApiV1OrganizationsUuid();
 
   const buckets = useMemo(() => {
-    if (!bucketsResponse) return [];
-    if (Array.isArray(bucketsResponse)) return bucketsResponse;
-    if ('content' in bucketsResponse) return (bucketsResponse as { content: BucketDTO[] }).content;
-    return [bucketsResponse];
+    return bucketsResponse ?? [];
   }, [bucketsResponse]);
 
-  const organization = orgData;
+  const organization = orgData as OrganizationDTO | undefined;
   const currentBucket = buckets.find(b => b.id === organization?.bucketId);
-  // Handle PageDTO or array response
-  const projects: ProjectDTO[] = projectsData
-    ? (Array.isArray(projectsData) ? projectsData : ('content' in projectsData ? projectsData.content as ProjectDTO[] : [projectsData]))
-    : [];
+  const projects: ProjectDTO[] = projectsData ?? [];
 
   const handleSelectBucket = async (bucketId: number | null) => {
     if (!organization?.uuid) return;
@@ -89,9 +84,11 @@ export default function OrganizationDetailPage() {
   if (isLoadingOrg) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-organizations">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500 dark:text-gray-400">Loading organization...</div>
         </div>
+        </RequireCapability>
       </AppLayout>
     );
   }
@@ -99,17 +96,20 @@ export default function OrganizationDetailPage() {
   if (orgError || !organization) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-organizations">
         <div className="flex items-center justify-center h-64">
           <div className="text-red-600 dark:text-red-400">
             Failed to load organization. Please try again.
           </div>
         </div>
+        </RequireCapability>
       </AppLayout>
     );
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-organizations">
       <div className="max-w-7xl">
         {/* Header */}
         <div className="mb-8">
@@ -442,6 +442,7 @@ export default function OrganizationDetailPage() {
           )}
         </div>
       </div>
+      </RequireCapability>
     </AppLayout>
   );
 }

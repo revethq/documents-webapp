@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+import RequireCapability from '@/components/require-capability'
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
 import { Field, FieldGroup, Label, Description } from '@/components/fieldset'
@@ -18,7 +19,7 @@ import {
   CheckIcon as CheckIconOutline,
 } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
-import { usePostUsers, getGetUsersQueryKey } from '@/lib/api/generated/user-resource/user-resource'
+import { usePostApiV1Users, getGetApiV1UsersQueryKey } from '@/lib/api/generated/user-resource/user-resource'
 import type { CreateUserRequest } from '@/lib/api/models'
 
 interface UserFormData {
@@ -41,7 +42,7 @@ const STEPS: { id: Step; name: string; icon: typeof UserCircleIcon }[] = [
 export default function NewUserPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const createMutation = usePostUsers()
+  const createMutation = usePostApiV1Users()
 
   const [formData, setFormData] = useState<UserFormData>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -87,7 +88,7 @@ export default function NewUserPage() {
       }
 
       await createMutation.mutateAsync({ data: payload })
-      await queryClient.invalidateQueries({ queryKey: getGetUsersQueryKey() })
+      await queryClient.invalidateQueries({ queryKey: getGetApiV1UsersQueryKey() })
       setCreateSuccess(true)
 
       setTimeout(() => {
@@ -102,6 +103,7 @@ export default function NewUserPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-users">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
           <Heading>Create New User</Heading>
@@ -265,6 +267,7 @@ export default function NewUserPage() {
           </div>
         )}
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

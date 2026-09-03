@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from "@/components/app-layout"
+import RequireCapability from '@/components/require-capability'
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
 import { Textarea } from '@/components/textarea'
@@ -77,13 +78,10 @@ export default function NewOrganizationPage() {
   const createOrganization = usePostApiV1Organizations()
 
   // Fetch buckets
-  const { data: bucketsResponse } = useGetApiV1Buckets()
+  const { data: bucketsResponse } = useGetApiV1Buckets({ includeInactive: false })
 
   const buckets: BucketDTO[] = useMemo(() => {
-    if (!bucketsResponse) return []
-    if (Array.isArray(bucketsResponse)) return bucketsResponse
-    if ('content' in bucketsResponse) return (bucketsResponse as { content: BucketDTO[] }).content
-    return [bucketsResponse]
+    return bucketsResponse ?? []
   }, [bucketsResponse])
 
   // Filter to only active buckets
@@ -197,6 +195,7 @@ export default function NewOrganizationPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-organizations">
       <div className="mx-auto max-w-3xl">
         {/* Header */}
         <div className="mb-8">
@@ -570,6 +569,7 @@ export default function NewOrganizationPage() {
           </div>
         )}
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

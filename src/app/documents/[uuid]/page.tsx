@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from "@/components/app-layout"
+import RequireCapability from '@/components/require-capability'
 import PageHeader from "@/components/page-header"
 import { Badge } from '@/components/badge'
 import { Button } from '@/components/button'
@@ -91,13 +92,25 @@ export default function DocumentDetailPage() {
   )
 
   // Fetch projects to get organization info
-  const { data: projectsResponse, error: projectsError } = useGetApiV1Projects()
+  const { data: projectsResponse, error: projectsError } = useGetApiV1Projects({ includeInactive: false })
+
+  // Parse projects early so we can derive the organization ID for tags
+  const projects: ProjectDTO[] = useMemo(() => {
+    return projectsResponse ?? []
+  }, [projectsResponse])
+
+  const project = useMemo(() => {
+    return projects.find(p => p.id === document?.projectId)
+  }, [projects, document?.projectId])
 
   // Fetch organizations to check bucket configuration
-  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations()
+  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations({ includeInactive: false })
 
-  // Fetch tags
-  const { data: tagsResponse, refetch: refetchTags, error: tagsError } = useGetApiV1Tags()
+  // Fetch tags scoped to the document's organization
+  const { data: tagsResponse, refetch: refetchTags, error: tagsError } = useGetApiV1Tags(
+    { organizationId: project?.organizationId ?? 0 },
+    { query: { enabled: !!project?.organizationId } }
+  )
 
   // Fetch categories for the document's project
   const { data: categoriesResponse, error: categoriesError } = useGetApiV1Categories(
@@ -110,46 +123,27 @@ export default function DocumentDetailPage() {
   const deleteDocument = useDeleteApiV1DocumentsUuid()
   const createTag = usePostApiV1Tags()
 
-  // Parse projects
-  const projects: ProjectDTO[] = useMemo(() => {
-    if (!projectsResponse) return []
-    if (Array.isArray(projectsResponse)) return projectsResponse
-    if ('content' in projectsResponse) return (projectsResponse as { content: ProjectDTO[] }).content
-    return [projectsResponse]
-  }, [projectsResponse])
-
   // Parse organizations
   const organizations: OrganizationDTO[] = useMemo(() => {
-    if (!organizationsResponse) return []
-    if (Array.isArray(organizationsResponse)) return organizationsResponse
-    if ('content' in organizationsResponse) return (organizationsResponse as { content: OrganizationDTO[] }).content
-    return [organizationsResponse]
+    return organizationsResponse ?? []
   }, [organizationsResponse])
 
-  // Parse tags
+  // Parse tags - hook returns TagDTO (single) but API returns array at runtime
   const allTags: TagDTO[] = useMemo(() => {
     if (!tagsResponse) return []
-    if (Array.isArray(tagsResponse)) return tagsResponse
-    if ('content' in tagsResponse) return (tagsResponse as { content: TagDTO[] }).content
-    return [tagsResponse]
+    return Array.isArray(tagsResponse) ? tagsResponse : [tagsResponse]
   }, [tagsResponse])
 
-  // Parse categories
+  // Parse categories - hook returns CategoryDTO (single) but API returns array at runtime
   const categories: CategoryDTO[] = useMemo(() => {
     if (!categoriesResponse) return []
-    if (Array.isArray(categoriesResponse)) return categoriesResponse
-    if ('content' in categoriesResponse) return (categoriesResponse as { content: CategoryDTO[] }).content
-    return [categoriesResponse]
+    return Array.isArray(categoriesResponse) ? categoriesResponse : [categoriesResponse]
   }, [categoriesResponse])
 
-  // Parse versions - handle both array and single object responses
+  // Parse versions - hook returns DocumentVersionDTO (single) but API returns array at runtime
   const versions: DocumentVersionDTO[] = useMemo(() => {
     if (!versionsResponse) return []
-    if (Array.isArray(versionsResponse)) return versionsResponse
-    // If it's a single version object, wrap it in an array
-    if ('uuid' in versionsResponse) return [versionsResponse]
-    if ('content' in versionsResponse) return (versionsResponse as { content: DocumentVersionDTO[] }).content
-    return []
+    return Array.isArray(versionsResponse) ? versionsResponse : [versionsResponse]
   }, [versionsResponse])
 
   // Sort versions by created date (newest first)
@@ -159,11 +153,7 @@ export default function DocumentDetailPage() {
     )
   }, [versions])
 
-  // Get project and organization info
-  const project = useMemo(() => {
-    return projects.find(p => p.id === document?.projectId)
-  }, [projects, document?.projectId])
-
+  // Get organization info
   const organization = useMemo(() => {
     if (!project?.organizationId) return null
     return organizations.find(o => o.id === project.organizationId)
@@ -247,7 +237,7 @@ export default function DocumentDetailPage() {
   // Handle create tag
   const handleCreateTag = async (name: string) => {
     try {
-      const newTag = await createTag.mutateAsync({ data: { name } })
+      const newTag = await createTag.mutateAsync({ data: { name }, params: { organizationId: project!.organizationId! } })
       await refetchTags()
       return newTag
     } catch (error) {
@@ -294,9 +284,11 @@ export default function DocumentDetailPage() {
   if (isLoading) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-documents">
         <div className="flex items-center justify-center py-24">
           <div className="size-8 animate-spin rounded-full border-4 border-zinc-300 border-t-blue-600 dark:border-zinc-600 dark:border-t-blue-400" />
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
@@ -304,6 +296,7 @@ export default function DocumentDetailPage() {
   if (!document) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-documents">
         <div className="py-12 text-center">
           <DocumentIcon className="mx-auto size-12 text-zinc-400" />
           <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-white">Document not found</h3>
@@ -317,12 +310,14 @@ export default function DocumentDetailPage() {
             </Button>
           </div>
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-documents">
       <PageHeader
         title={document.name}
         description={`Uploaded on ${formatDate(document.date)}`}
@@ -570,6 +565,7 @@ export default function DocumentDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
+      </RequireCapability>
     </AppLayout>
   )
 }

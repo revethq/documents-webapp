@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+import RequireCapability from '@/components/require-capability'
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
 import { Field, FieldGroup, Label, Description } from '@/components/fieldset'
@@ -17,7 +18,7 @@ import {
   CheckIcon as CheckIconOutline,
 } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
-import { usePostGroups, getGetGroupsQueryKey } from '@/lib/api/generated/group-resource/group-resource'
+import { usePostApiV1Groups, getGetApiV1GroupsQueryKey } from '@/lib/api/generated/group-resource/group-resource'
 import type { CreateGroupRequest } from '@/lib/api/models'
 
 interface GroupFormData {
@@ -38,7 +39,7 @@ const STEPS: { id: Step; name: string; icon: typeof UserGroupIcon }[] = [
 export default function NewGroupPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
-  const createMutation = usePostGroups()
+  const createMutation = usePostApiV1Groups()
 
   const [formData, setFormData] = useState<GroupFormData>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -83,7 +84,7 @@ export default function NewGroupPage() {
       }
 
       await createMutation.mutateAsync({ data: payload })
-      await queryClient.invalidateQueries({ queryKey: getGetGroupsQueryKey() })
+      await queryClient.invalidateQueries({ queryKey: getGetApiV1GroupsQueryKey() })
       setCreateSuccess(true)
 
       setTimeout(() => {
@@ -98,6 +99,7 @@ export default function NewGroupPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-groups">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
           <Heading>Create New Group</Heading>
@@ -244,6 +246,7 @@ export default function NewGroupPage() {
           </div>
         )}
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

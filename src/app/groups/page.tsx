@@ -7,20 +7,19 @@ import PageHeader from '@/components/page-header'
 import EmptyState from '@/components/empty-state'
 import { Link } from '@/components/link'
 import { UserGroupIcon } from '@heroicons/react/24/outline'
-import { useGetGroups } from '@/lib/api/generated/group-resource/group-resource'
+import { useGetApiV1Groups } from '@/lib/api/generated/group-resource/group-resource'
 import type { GroupResponse } from '@/lib/api/models'
+import RequireCapability from '@/components/require-capability'
 
 export default function GroupsPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: groupsResponse, isLoading, error } = useGetGroups()
+  const { data: groupsResponse, isLoading, error } = useGetApiV1Groups({ page: 0 })
 
   const groups = useMemo(() => {
     if (!groupsResponse) return []
-    if (Array.isArray(groupsResponse)) return groupsResponse
-    if ('content' in groupsResponse) return (groupsResponse as { content: GroupResponse[] }).content
-    return [groupsResponse]
+    return groupsResponse.content ?? []
   }, [groupsResponse])
 
   const filteredGroups = useMemo(() => {
@@ -33,6 +32,7 @@ export default function GroupsPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-groups">
       <PageHeader
         title="Groups"
         description="Manage groups and their members."
@@ -132,6 +132,7 @@ export default function GroupsPage() {
           </div>
         </div>
       )}
+    </RequireCapability>
     </AppLayout>
   )
 }

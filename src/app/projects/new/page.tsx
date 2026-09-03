@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from "@/components/app-layout"
+import RequireCapability from '@/components/require-capability'
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
 import { Textarea } from '@/components/textarea'
@@ -48,14 +49,11 @@ export default function NewProjectPage() {
   const [createSuccess, setCreateSuccess] = useState(false)
 
   // API queries
-  const { data: organizationsResponse } = useGetApiV1Organizations()
+  const { data: organizationsResponse } = useGetApiV1Organizations({ includeInactive: false })
 
   // Parse responses
   const organizations: OrganizationDTO[] = useMemo(() => {
-    if (!organizationsResponse) return []
-    if (Array.isArray(organizationsResponse)) return organizationsResponse
-    if ('content' in organizationsResponse) return (organizationsResponse as { content: OrganizationDTO[] }).content
-    return [organizationsResponse]
+    return organizationsResponse ?? []
   }, [organizationsResponse])
 
   const selectedOrg = organizations.find(o => o.id === selectedOrgId)
@@ -125,6 +123,7 @@ export default function NewProjectPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-projects">
       <div className="mx-auto max-w-3xl">
         {/* Header */}
         <div className="mb-8">
@@ -345,6 +344,7 @@ export default function NewProjectPage() {
           </div>
         )}
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

@@ -18,6 +18,9 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Upgrade Alpine packages to pick up security fixes (libcrypto3, libssl3, etc.)
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 

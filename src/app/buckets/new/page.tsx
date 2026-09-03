@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+import RequireCapability from '@/components/require-capability'
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
 import { Field, Label, Description } from '@/components/fieldset'
@@ -20,7 +21,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { CheckIcon } from '@heroicons/react/24/solid'
 import { usePostApiV1Buckets, getGetApiV1BucketsQueryKey } from '@/lib/api/generated/buckets/buckets'
-import type { CreateBucketRequest } from '@/lib/api/models'
+import type { CreateBucketRequest, BucketDTO } from '@/lib/api/models'
 import { StorageProvider } from '@/lib/api/models'
 
 const providerLabels: Record<string, string> = {
@@ -141,7 +142,7 @@ export default function NewBucketPage() {
         presignedUrlDurationMinutes: formData.presignedUrlDurationMinutes,
       }
 
-      const createdBucket = await createMutation.mutateAsync({ data: payload })
+      const createdBucket = await createMutation.mutateAsync({ data: payload }) as BucketDTO
       await queryClient.invalidateQueries({ queryKey: getGetApiV1BucketsQueryKey() })
       setCreateSuccess(true)
 
@@ -157,6 +158,7 @@ export default function NewBucketPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-buckets">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8">
           <Heading>Create Storage Bucket</Heading>
@@ -428,6 +430,7 @@ export default function NewBucketPage() {
           </div>
         )}
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

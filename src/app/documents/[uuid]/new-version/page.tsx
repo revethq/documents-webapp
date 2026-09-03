@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from "@/components/app-layout"
+import RequireCapability from '@/components/require-capability'
 import PageHeader from "@/components/page-header"
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
@@ -188,9 +189,11 @@ export default function NewVersionPage() {
   if (isLoading) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-documents">
         <div className="flex items-center justify-center py-24">
           <div className="size-8 animate-spin rounded-full border-4 border-zinc-300 border-t-blue-600 dark:border-zinc-600 dark:border-t-blue-400" />
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
@@ -198,6 +201,7 @@ export default function NewVersionPage() {
   if (!document) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-documents">
         <div className="py-12 text-center">
           <DocumentIcon className="mx-auto size-12 text-zinc-400" />
           <h3 className="mt-2 text-sm font-semibold text-zinc-900 dark:text-white">Document not found</h3>
@@ -211,12 +215,14 @@ export default function NewVersionPage() {
             </Button>
           </div>
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-documents">
       <PageHeader
         title="Upload New Version"
         description={`Adding a new version to "${document.name}"`}
@@ -397,6 +403,7 @@ export default function NewVersionPage() {
           </Button>
         </div>
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

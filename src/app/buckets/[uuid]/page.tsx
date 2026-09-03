@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+import RequireCapability from '@/components/require-capability'
 import {
   useGetApiV1BucketsUuid,
   usePutApiV1BucketsUuid,
@@ -129,9 +130,11 @@ export default function BucketDetailPage() {
   if (isLoading) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-buckets">
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
           Loading bucket...
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
@@ -139,18 +142,21 @@ export default function BucketDetailPage() {
   if (error || !bucketData) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-buckets">
         <div className="flex items-center justify-center h-64 text-red-600 dark:text-red-400">
           Failed to load bucket. Please try again.
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-buckets">
       <div className="max-w-3xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{bucketData.name}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">{(bucketData as BucketDTO).name}</h1>
           <p className="mt-2 text-sm text-gray-700 dark:text-gray-400">
             View and update bucket configuration.
           </p>
@@ -296,6 +302,7 @@ export default function BucketDetailPage() {
           </div>
         </form>
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

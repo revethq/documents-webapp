@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from "@/components/app-layout"
+import RequireCapability from '@/components/require-capability'
 import { Button } from '@/components/button'
 import { Input } from '@/components/input'
 import { Select } from '@/components/select'
@@ -78,49 +79,29 @@ export default function NewDocumentPage() {
   const [isDragging, setIsDragging] = useState(false)
 
   // API queries
-  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations()
+  const { data: organizationsResponse, error: organizationsError } = useGetApiV1Organizations({ includeInactive: false })
   const { data: projectsResponse, error: projectsError } = useGetApiV1Projects(
-    selectedOrgId ? { organizationId: selectedOrgId } : undefined,
+    { includeInactive: false, organizationId: selectedOrgId },
     { query: { enabled: selectedOrgId !== null } }
   )
   const { data: categoriesResponse, error: categoriesError } = useGetApiV1Categories(
     selectedProjectId ? { projectId: selectedProjectId } : undefined,
     { query: { enabled: selectedProjectId !== null } }
   )
-  const { data: tagsResponse, refetch: refetchTags, error: tagsError } = useGetApiV1Tags()
+  const { data: tagsResponse, refetch: refetchTags, error: tagsError } = useGetApiV1Tags(
+    { organizationId: selectedOrgId ?? 0 },
+    { query: { enabled: selectedOrgId !== null } }
+  )
   const createTag = usePostApiV1Tags()
   const createDocument = usePostApiV1Documents()
   const initiateUpload = usePostApiV1FilesInitiateUpload()
   const completeUpload = usePutApiV1DocumentVersionsUuidCompleteUpload()
 
   // Parse responses
-  const organizations: OrganizationDTO[] = (() => {
-    if (!organizationsResponse) return []
-    if (Array.isArray(organizationsResponse)) return organizationsResponse
-    if ('content' in organizationsResponse) return organizationsResponse.content as OrganizationDTO[]
-    return [organizationsResponse]
-  })()
-
-  const projects: ProjectDTO[] = (() => {
-    if (!projectsResponse) return []
-    if (Array.isArray(projectsResponse)) return projectsResponse
-    if ('content' in projectsResponse) return projectsResponse.content as ProjectDTO[]
-    return [projectsResponse]
-  })()
-
-  const categories: CategoryDTO[] = (() => {
-    if (!categoriesResponse) return []
-    if (Array.isArray(categoriesResponse)) return categoriesResponse
-    if ('content' in categoriesResponse) return categoriesResponse.content as CategoryDTO[]
-    return [categoriesResponse]
-  })()
-
-  const allTags: TagDTO[] = (() => {
-    if (!tagsResponse) return []
-    if (Array.isArray(tagsResponse)) return tagsResponse
-    if ('content' in tagsResponse) return (tagsResponse as { content: TagDTO[] }).content
-    return [tagsResponse]
-  })()
+  const organizations: OrganizationDTO[] = organizationsResponse ?? []
+  const projects: ProjectDTO[] = projectsResponse ?? []
+  const categories: CategoryDTO[] = Array.isArray(categoriesResponse) ? categoriesResponse : categoriesResponse ? [categoriesResponse] : []
+  const allTags: TagDTO[] = Array.isArray(tagsResponse) ? tagsResponse : tagsResponse ? [tagsResponse] : []
 
 
 
@@ -160,7 +141,7 @@ export default function NewDocumentPage() {
   // Create tag handler for TagPicker
   const handleCreateTag = async (name: string) => {
     try {
-      const newTag = await createTag.mutateAsync({ data: { name } })
+      const newTag = await createTag.mutateAsync({ data: { name }, params: { organizationId: selectedOrgId! } })
       await refetchTags()
       return newTag
     } catch (error) {
@@ -299,6 +280,7 @@ export default function NewDocumentPage() {
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-documents">
       <div className="mx-auto max-w-3xl">
         {/* Header */}
         <div className="mb-8">
@@ -684,6 +666,7 @@ export default function NewDocumentPage() {
           )}
         </div>
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

@@ -4,15 +4,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+
 import { Link } from '@/components/link'
 import { PolicyEditor } from '@/components/policy-editor/policy-editor'
 import {
-  useGetPoliciesId,
-  usePutPoliciesId,
-  useDeletePoliciesId,
-  useGetPoliciesIdAttachments,
-  getGetPoliciesQueryKey,
-  getGetPoliciesIdQueryKey,
+  useGetApiV1PoliciesId,
+  usePutApiV1PoliciesId,
+  useDeleteApiV1PoliciesId,
+  useGetApiV1PoliciesIdAttachments,
+  getGetApiV1PoliciesQueryKey,
+  getGetApiV1PoliciesIdQueryKey,
 } from '@/lib/api/generated/policy-resource/policy-resource'
 import type { StatementDto, UpdatePolicyRequest, PolicyAttachmentResponse } from '@/lib/api/models'
 
@@ -47,17 +48,17 @@ export default function PolicyDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { data: policyData, isLoading, error: loadError } = useGetPoliciesId(policyId, {
+  const { data: policyData, isLoading, error: loadError } = useGetApiV1PoliciesId(policyId, {
     query: { enabled: !!policyId },
   })
 
-  const { data: attachmentsData, isLoading: isLoadingAttachments } = useGetPoliciesIdAttachments(
+  const { data: attachmentsData, isLoading: isLoadingAttachments } = useGetApiV1PoliciesIdAttachments(
     policyId,
     { query: { enabled: !!policyId } }
   )
 
-  const updateMutation = usePutPoliciesId()
-  const deleteMutation = useDeletePoliciesId()
+  const updateMutation = usePutApiV1PoliciesId()
+  const deleteMutation = useDeleteApiV1PoliciesId()
 
   useEffect(() => {
     if (policyData) {
@@ -70,14 +71,7 @@ export default function PolicyDetailPage() {
 
   const attachments = useMemo(() => {
     if (!attachmentsData) return []
-    if (Array.isArray(attachmentsData)) return attachmentsData
-    if ('items' in attachmentsData) {
-      return (attachmentsData as { items: PolicyAttachmentResponse[] }).items
-    }
-    if ('content' in attachmentsData) {
-      return (attachmentsData as { content: PolicyAttachmentResponse[] }).content
-    }
-    return [attachmentsData]
+    return attachmentsData.items ?? []
   }, [attachmentsData])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,8 +110,8 @@ export default function PolicyDetailPage() {
       }
 
       await updateMutation.mutateAsync({ id: policyId, data: payload })
-      await queryClient.invalidateQueries({ queryKey: getGetPoliciesQueryKey() })
-      await queryClient.invalidateQueries({ queryKey: getGetPoliciesIdQueryKey(policyId) })
+      await queryClient.invalidateQueries({ queryKey: getGetApiV1PoliciesQueryKey() })
+      await queryClient.invalidateQueries({ queryKey: getGetApiV1PoliciesIdQueryKey(policyId) })
     } catch (err) {
       console.error('Failed to update policy:', err)
       setError(err instanceof Error ? err.message : 'Failed to update policy')
@@ -130,7 +124,7 @@ export default function PolicyDetailPage() {
     setIsDeleting(true)
     try {
       await deleteMutation.mutateAsync({ id: policyId })
-      await queryClient.invalidateQueries({ queryKey: getGetPoliciesQueryKey() })
+      await queryClient.invalidateQueries({ queryKey: getGetApiV1PoliciesQueryKey() })
       router.push('/policies')
     } catch (err) {
       console.error('Failed to delete policy:', err)
@@ -143,6 +137,7 @@ export default function PolicyDetailPage() {
   if (isLoading) {
     return (
       <AppLayout>
+
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
           Loading policy...
         </div>
@@ -153,6 +148,7 @@ export default function PolicyDetailPage() {
   if (loadError || !policyData) {
     return (
       <AppLayout>
+
         <div className="flex items-center justify-center h-64 text-red-600 dark:text-red-400">
           Failed to load policy. Please try again.
         </div>
@@ -162,6 +158,7 @@ export default function PolicyDetailPage() {
 
   return (
     <AppLayout>
+
       <div className="max-w-5xl">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">

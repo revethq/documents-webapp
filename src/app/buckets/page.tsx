@@ -9,6 +9,7 @@ import { CircleStackIcon } from '@heroicons/react/24/outline'
 import { Link } from '@/components/link'
 import { useGetApiV1Buckets } from '@/lib/api/generated/buckets/buckets'
 import type { BucketDTO } from '@/lib/api/models'
+import RequireCapability from '@/components/require-capability'
 
 const providerLabels: Record<string, string> = {
   S3: 'Amazon S3',
@@ -19,17 +20,15 @@ const providerLabels: Record<string, string> = {
 
 export default function BucketsPage() {
   const router = useRouter()
-  const { data: bucketsResponse, isLoading } = useGetApiV1Buckets()
+  const { data: bucketsResponse, isLoading } = useGetApiV1Buckets({ includeInactive: false })
 
   const buckets = useMemo(() => {
-    if (!bucketsResponse) return []
-    if (Array.isArray(bucketsResponse)) return bucketsResponse
-    if ('content' in bucketsResponse) return (bucketsResponse as { content: BucketDTO[] }).content
-    return [bucketsResponse]
+    return bucketsResponse ?? []
   }, [bucketsResponse])
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-buckets">
       <PageHeader
         title="Storage Buckets"
         description="Configure cloud storage buckets for document storage."
@@ -129,6 +128,7 @@ export default function BucketsPage() {
           </div>
         </div>
       )}
+    </RequireCapability>
     </AppLayout>
   )
 }

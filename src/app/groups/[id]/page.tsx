@@ -4,26 +4,27 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+import RequireCapability from '@/components/require-capability'
 import { Select } from '@/components/select'
 import {
-  useGetGroupsId,
-  usePutGroupsId,
-  useGetGroupsIdMembers,
-  usePostGroupsIdMembers,
-  useDeleteGroupsIdMembersMemberId,
-  getGetGroupsIdMembersQueryKey,
-  useGetGroups,
+  useGetApiV1GroupsId,
+  usePutApiV1GroupsId,
+  useGetApiV1GroupsIdMembers,
+  usePostApiV1GroupsIdMembers,
+  useDeleteApiV1GroupsIdMembersMemberId,
+  getGetApiV1GroupsIdMembersQueryKey,
+  useGetApiV1Groups,
 } from '@/lib/api/generated/group-resource/group-resource'
 import {
-  useGetGroupsIdPolicies,
-  getGetGroupsIdPoliciesQueryKey,
+  useGetApiV1GroupsIdPolicies,
+  getGetApiV1GroupsIdPoliciesQueryKey,
 } from '@/lib/api/generated/group-policy-resource/group-policy-resource'
 import {
-  useGetPolicies,
-  usePostPoliciesIdAttachments,
-  useDeletePoliciesIdAttachmentsAttachmentId,
+  useGetApiV1Policies,
+  usePostApiV1PoliciesIdAttachments,
+  useDeleteApiV1PoliciesIdAttachmentsAttachmentId,
 } from '@/lib/api/generated/policy-resource/policy-resource'
-import { useGetUsers } from '@/lib/api/generated/user-resource/user-resource'
+import { useGetApiV1Users } from '@/lib/api/generated/user-resource/user-resource'
 import type {
   GroupResponse,
   GroupMemberResponse,
@@ -31,6 +32,7 @@ import type {
   UserResponse,
   PolicyResponse,
   AttachedPolicyResponse,
+  GetPoliciesParams,
 } from '@/lib/api/models'
 import { MemberType } from '@/lib/api/models'
 
@@ -57,40 +59,40 @@ export default function GroupDetailPage() {
   const [selectedMemberType, setSelectedMemberType] = useState<MemberType>(MemberType.USER)
   const [selectedPolicyId, setSelectedPolicyId] = useState('')
 
-  const { data: groupData, isLoading, error } = useGetGroupsId(groupId, {
+  const { data: groupData, isLoading, error } = useGetApiV1GroupsId(groupId, {
     query: { enabled: !!groupId },
   })
-  const updateMutation = usePutGroupsId()
+  const updateMutation = usePutApiV1GroupsId()
 
   const isMembersTab = activeTab === 'members'
   const isPoliciesTab = activeTab === 'policies'
 
-  const { data: membersData, isLoading: isLoadingMembers } = useGetGroupsIdMembers(groupId, {
+  const { data: membersData, isLoading: isLoadingMembers } = useGetApiV1GroupsIdMembers(groupId, {
     query: { enabled: isMembersTab && !!groupId },
   })
 
-  const { data: usersResponse, isLoading: isLoadingUsers } = useGetUsers(undefined, {
+  const { data: usersResponse, isLoading: isLoadingUsers } = useGetApiV1Users({ page: 0 }, {
     query: { enabled: isMembersTab },
   })
 
-  const { data: groupsResponse, isLoading: isLoadingGroups } = useGetGroups(undefined, {
+  const { data: groupsResponse, isLoading: isLoadingGroups } = useGetApiV1Groups({ page: 0 }, {
     query: { enabled: isMembersTab },
   })
 
-  const { data: groupPoliciesData, isLoading: isLoadingGroupPolicies } = useGetGroupsIdPolicies(
+  const { data: groupPoliciesData, isLoading: isLoadingGroupPolicies } = useGetApiV1GroupsIdPolicies(
     groupId,
-    undefined,
+    { page: 0 },
     { query: { enabled: isPoliciesTab && !!groupId } }
   )
 
-  const { data: allPoliciesData, isLoading: isLoadingAllPolicies } = useGetPolicies(undefined, {
+  const { data: allPoliciesData, isLoading: isLoadingAllPolicies } = useGetApiV1Policies({ startIndex: 0 } as GetPoliciesParams, {
     query: { enabled: isPoliciesTab },
   })
 
-  const addMemberMutation = usePostGroupsIdMembers()
-  const removeMemberMutation = useDeleteGroupsIdMembersMemberId()
-  const attachPolicyMutation = usePostPoliciesIdAttachments()
-  const detachPolicyMutation = useDeletePoliciesIdAttachmentsAttachmentId()
+  const addMemberMutation = usePostApiV1GroupsIdMembers()
+  const removeMemberMutation = useDeleteApiV1GroupsIdMembersMemberId()
+  const attachPolicyMutation = usePostApiV1PoliciesIdAttachments()
+  const detachPolicyMutation = useDeleteApiV1PoliciesIdAttachmentsAttachmentId()
 
   useEffect(() => {
     if (!groupData) return
@@ -108,40 +110,22 @@ export default function GroupDetailPage() {
 
   const users = useMemo(() => {
     if (!usersResponse) return []
-    if (Array.isArray(usersResponse)) return usersResponse
-    if ('content' in usersResponse) return (usersResponse as { content: UserResponse[] }).content
-    return [usersResponse]
+    return usersResponse.content ?? []
   }, [usersResponse])
 
   const groups = useMemo(() => {
     if (!groupsResponse) return []
-    if (Array.isArray(groupsResponse)) return groupsResponse
-    if ('content' in groupsResponse) return (groupsResponse as { content: GroupResponse[] }).content
-    return [groupsResponse]
+    return groupsResponse.content ?? []
   }, [groupsResponse])
 
   const groupPolicies = useMemo(() => {
     if (!groupPoliciesData) return []
-    if (Array.isArray(groupPoliciesData)) return groupPoliciesData
-    if ('items' in groupPoliciesData) {
-      return (groupPoliciesData as { items: AttachedPolicyResponse[] }).items
-    }
-    if ('content' in groupPoliciesData) {
-      return (groupPoliciesData as { content: AttachedPolicyResponse[] }).content
-    }
-    return [groupPoliciesData] as AttachedPolicyResponse[]
+    return groupPoliciesData.content ?? []
   }, [groupPoliciesData])
 
   const allPolicies = useMemo(() => {
     if (!allPoliciesData) return []
-    if (Array.isArray(allPoliciesData)) return allPoliciesData
-    if ('items' in allPoliciesData) {
-      return (allPoliciesData as { items: PolicyResponse[] }).items
-    }
-    if ('content' in allPoliciesData) {
-      return (allPoliciesData as { content: PolicyResponse[] }).content
-    }
-    return [allPoliciesData]
+    return allPoliciesData.items ?? []
   }, [allPoliciesData])
 
   const attachedPolicyIds = useMemo(() => {
@@ -206,7 +190,7 @@ export default function GroupDetailPage() {
   }
 
   const refreshMembers = async () => {
-    await queryClient.invalidateQueries({ queryKey: getGetGroupsIdMembersQueryKey(groupId) })
+    await queryClient.invalidateQueries({ queryKey: getGetApiV1GroupsIdMembersQueryKey(groupId) })
   }
 
   const refreshPolicies = async () => {
@@ -289,9 +273,11 @@ export default function GroupDetailPage() {
   if (isLoading) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-groups">
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
           Loading group...
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
@@ -299,15 +285,18 @@ export default function GroupDetailPage() {
   if (error || !groupData) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-groups">
         <div className="flex items-center justify-center h-64 text-red-600 dark:text-red-400">
           Failed to load group. Please try again.
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-groups">
       <div className="max-w-5xl">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -617,6 +606,7 @@ export default function GroupDetailPage() {
           )}
         </div>
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }

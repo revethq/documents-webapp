@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+
 import { PolicyEditor } from '@/components/policy-editor/policy-editor'
 import {
-  usePostPolicies,
-  getGetPoliciesQueryKey,
+  usePostApiV1Policies,
+  getGetApiV1PoliciesQueryKey,
 } from '@/lib/api/generated/policy-resource/policy-resource'
 import type { StatementDto, CreatePolicyRequest } from '@/lib/api/models'
 
@@ -22,7 +23,7 @@ export default function NewPolicyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const createMutation = usePostPolicies()
+  const createMutation = usePostApiV1Policies()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,7 +61,7 @@ export default function NewPolicyPage() {
       }
 
       await createMutation.mutateAsync({ data: payload })
-      await queryClient.invalidateQueries({ queryKey: getGetPoliciesQueryKey() })
+      await queryClient.invalidateQueries({ queryKey: getGetApiV1PoliciesQueryKey() })
       router.push('/policies')
     } catch (err) {
       console.error('Failed to create policy:', err)

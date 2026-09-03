@@ -1,7 +1,7 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
-  kala: {
+  documents: {
     input: {
       target: './openapi.json',
     },

@@ -4,8 +4,10 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Dialog, DialogBackdrop, DialogPanel, TransitionChild } from '@headlessui/react'
 import { useAuth } from 'react-oidc-context'
+import { useCapabilities } from '@/components/providers/capabilities-provider'
 import { Link } from '@/components/link'
 import {
+  ArrowRightStartOnRectangleIcon,
   Bars3Icon,
   BuildingOfficeIcon,
   CircleStackIcon,
@@ -17,13 +19,13 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
-const navigation = [
-  { name: 'Documents', href: '/documents', icon: DocumentDuplicateIcon },
-  { name: 'Organizations', href: '/organizations', icon: BuildingOfficeIcon },
-  { name: 'Projects', href: '/projects', icon: FolderIcon },
-  { name: 'Storage', href: '/buckets', icon: CircleStackIcon },
-  { name: 'Users', href: '/users', icon: UsersIcon },
-  { name: 'Groups', href: '/groups', icon: UserGroupIcon },
+const allNavigation = [
+  { name: 'Documents', href: '/documents', icon: DocumentDuplicateIcon, capability: 'documents:manage-documents' },
+  { name: 'Organizations', href: '/organizations', icon: BuildingOfficeIcon, capability: 'documents:manage-organizations' },
+  { name: 'Projects', href: '/projects', icon: FolderIcon, capability: 'documents:manage-projects' },
+  { name: 'Storage', href: '/buckets', icon: CircleStackIcon, capability: 'documents:manage-buckets' },
+  { name: 'Users', href: '/users', icon: UsersIcon, capability: 'documents:manage-users' },
+  { name: 'Groups', href: '/groups', icon: UserGroupIcon, capability: 'documents:manage-groups' },
   { name: 'Policies', href: '/policies', icon: ShieldCheckIcon },
 ]
 
@@ -43,6 +45,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const auth = useAuth()
+  const { capabilities, error: capError } = useCapabilities()
+
+  const navigation = allNavigation.filter((item) => {
+    if (!item.capability) return true
+    // On error, show all nav items (graceful degradation)
+    if (capError) return true
+    return capabilities.some((c) => c.id === item.capability && c.available)
+  })
   const displayName =
     auth.user?.profile?.name ||
     auth.user?.profile?.preferred_username ||
@@ -124,6 +134,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         ))}
                       </ul>
                     </li>
+                    <li className="mt-auto -mx-2 pb-2">
+                      <button
+                        type="button"
+                        onClick={() => auth.signoutRedirect()}
+                        className="group flex w-full gap-x-3 rounded-md p-2 text-sm/6 font-semibold text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+                      >
+                        <ArrowRightStartOnRectangleIcon
+                          aria-hidden="true"
+                          className="size-6 shrink-0 text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-white"
+                        />
+                        Log out
+                      </button>
+                    </li>
                   </ul>
                 </nav>
               </div>
@@ -185,6 +208,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     ))}
                   </ul>
                 </li>
+                <li className="mt-auto -mx-2 pb-4">
+                  <button
+                    type="button"
+                    onClick={() => auth.signoutRedirect()}
+                    className="group flex w-full gap-x-3 rounded-md p-2 text-sm/6 font-semibold text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white"
+                  >
+                    <ArrowRightStartOnRectangleIcon
+                      aria-hidden="true"
+                      className="size-6 shrink-0 text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-white"
+                    />
+                    Log out
+                  </button>
+                </li>
               </ul>
             </nav>
           </div>
@@ -207,7 +243,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <main className="py-10 lg:pl-72">
-          <div className="px-4 sm:px-6 lg:px-8">{children}</div>
+          <div className="px-4 sm:px-6 lg:px-8">
+            {navigation.length === 0 && !capError ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <ShieldCheckIcon className="size-12 text-gray-400 dark:text-gray-500" />
+                <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+                  No access
+                </h2>
+                <p className="mt-2 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+                  Your account doesn&apos;t have access to any features yet. Contact your
+                  administrator to get permissions assigned.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => auth.signoutRedirect()}
+                  className="mt-6 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                >
+                  Log out
+                </button>
+              </div>
+            ) : (
+              children
+            )}
+          </div>
         </main>
       </div>
     </>

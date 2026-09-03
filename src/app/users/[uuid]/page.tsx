@@ -4,25 +4,27 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import AppLayout from '@/components/app-layout'
+import RequireCapability from '@/components/require-capability'
 import { Select } from '@/components/select'
 import {
-  useGetUsersId,
-  usePutUsersId,
+  useGetApiV1UsersId,
+  usePutApiV1UsersId,
 } from '@/lib/api/generated/user-resource/user-resource'
 import {
-  useGetUsersIdPolicies,
-  getGetUsersIdPoliciesQueryKey,
+  useGetApiV1UsersIdPolicies,
+  getGetApiV1UsersIdPoliciesQueryKey,
 } from '@/lib/api/generated/user-policy-resource/user-policy-resource'
 import {
-  useGetPolicies,
-  usePostPoliciesIdAttachments,
-  useDeletePoliciesIdAttachmentsAttachmentId,
+  useGetApiV1Policies,
+  usePostApiV1PoliciesIdAttachments,
+  useDeleteApiV1PoliciesIdAttachmentsAttachmentId,
 } from '@/lib/api/generated/policy-resource/policy-resource'
 import type {
   UpdateUserRequest,
   UserResponse,
   PolicyResponse,
   AttachedPolicyResponse,
+  GetPoliciesParams,
 } from '@/lib/api/models'
 
 interface UserFormData {
@@ -48,25 +50,25 @@ export default function UserDetailPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedPolicyId, setSelectedPolicyId] = useState('')
 
-  const { data: userData, isLoading, error } = useGetUsersId(userId, {
+  const { data: userData, isLoading, error } = useGetApiV1UsersId(userId, {
     query: { enabled: !!userId },
   })
-  const updateMutation = usePutUsersId()
+  const updateMutation = usePutApiV1UsersId()
 
   const isPoliciesTab = activeTab === 'policies'
 
-  const { data: userPoliciesData, isLoading: isLoadingUserPolicies } = useGetUsersIdPolicies(
+  const { data: userPoliciesData, isLoading: isLoadingUserPolicies } = useGetApiV1UsersIdPolicies(
     userId,
-    undefined,
+    { page: 0 },
     { query: { enabled: isPoliciesTab && !!userId } }
   )
 
-  const { data: allPoliciesData, isLoading: isLoadingAllPolicies } = useGetPolicies(undefined, {
+  const { data: allPoliciesData, isLoading: isLoadingAllPolicies } = useGetApiV1Policies({ startIndex: 0 } as GetPoliciesParams, {
     query: { enabled: isPoliciesTab },
   })
 
-  const attachPolicyMutation = usePostPoliciesIdAttachments()
-  const detachPolicyMutation = useDeletePoliciesIdAttachmentsAttachmentId()
+  const attachPolicyMutation = usePostApiV1PoliciesIdAttachments()
+  const detachPolicyMutation = useDeleteApiV1PoliciesIdAttachmentsAttachmentId()
 
   useEffect(() => {
     if (!userData) return
@@ -79,26 +81,12 @@ export default function UserDetailPage() {
 
   const userPolicies = useMemo(() => {
     if (!userPoliciesData) return []
-    if (Array.isArray(userPoliciesData)) return userPoliciesData
-    if ('items' in userPoliciesData) {
-      return (userPoliciesData as { items: AttachedPolicyResponse[] }).items
-    }
-    if ('content' in userPoliciesData) {
-      return (userPoliciesData as { content: AttachedPolicyResponse[] }).content
-    }
-    return [userPoliciesData] as AttachedPolicyResponse[]
+    return userPoliciesData.content ?? []
   }, [userPoliciesData])
 
   const allPolicies = useMemo(() => {
     if (!allPoliciesData) return []
-    if (Array.isArray(allPoliciesData)) return allPoliciesData
-    if ('items' in allPoliciesData) {
-      return (allPoliciesData as { items: PolicyResponse[] }).items
-    }
-    if ('content' in allPoliciesData) {
-      return (allPoliciesData as { content: PolicyResponse[] }).content
-    }
-    return [allPoliciesData]
+    return allPoliciesData.items ?? []
   }, [allPoliciesData])
 
   const attachedPolicyIds = useMemo(() => {
@@ -170,9 +158,11 @@ export default function UserDetailPage() {
   if (isLoading) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-users">
         <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
           Loading user...
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
@@ -180,15 +170,18 @@ export default function UserDetailPage() {
   if (error || !userData) {
     return (
       <AppLayout>
+        <RequireCapability id="documents:manage-users">
         <div className="flex items-center justify-center h-64 text-red-600 dark:text-red-400">
           Failed to load user. Please try again.
         </div>
+        </RequireCapability>
       </AppLayout>
     )
   }
 
   return (
     <AppLayout>
+      <RequireCapability id="documents:manage-users">
       <div className="max-w-5xl">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -364,6 +357,7 @@ export default function UserDetailPage() {
           )}
         </div>
       </div>
+      </RequireCapability>
     </AppLayout>
   )
 }
